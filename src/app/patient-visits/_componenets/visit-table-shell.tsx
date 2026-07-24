@@ -12,6 +12,7 @@ const tableHead = [
   "Nama Pasien",
   "Poli",
   "Resep",
+  "Tindakan",
   "Harga",
   "Metode",
 ];

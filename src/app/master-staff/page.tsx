@@ -1,15 +1,15 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { QueryData } from "@supabase/supabase-js";
+import * as z from "zod";
 
-// component
-import StaffClient from "./_components/client-staff";
-import { DataErrorState } from "@/components/feedback/data-error-state";
+// COMP
+import StaffClient from "./_components/staff-client";
 
-// type
-import type { IStaff } from "@/type/staff";
-import type { IRole } from "@/type/role";
+// TYPE
+import { staffSchema } from "./schema";
+import { RoleSchema } from "../master-roles/schema";
 
-// fetching data staff
 export default async function StaffPage() {
   const supabase = await createClient();
 
@@ -20,12 +20,14 @@ export default async function StaffPage() {
     redirect("/login");
   }
 
+  const staffQuery = supabase
+    .from("staff")
+    .select("id, staff_name, role_id, is_active, roles(role_name)")
+    .order("roles(role_name)", { ascending: true })
+    .order("staff_name", { ascending: true });
+
   const [staffRes, roleRes] = await Promise.all([
-    supabase
-      .from("staff")
-      .select("id, staff_name, role_id, is_active, roles(role_name)")
-      .order("roles(role_name)", { ascending: true })
-      .order("staff_name", { ascending: true }),
+    staffQuery,
     supabase
       .from("roles")
       .select("role_name, id")
@@ -33,30 +35,14 @@ export default async function StaffPage() {
   ]);
 
   // return message error
-  if (staffRes.error) {
-    return (
-      <DataErrorState
-        title="Manajement Petugas"
-        message={staffRes.error.message}
-        tableName="staff"
-        columns={["id", "staff_name", "role_id", "is_active"]}
-      />
-    );
-  }
+  if (staffRes.error) throw new Error("Failed to insert Staff.");
+  if (roleRes.error) throw new Error("Failed to insert Staff.");
 
-  if (roleRes.error) {
-    return (
-      <DataErrorState
-        title="Manajement Peran"
-        message={roleRes.error.message}
-        tableName="roles"
-        columns={["role_name"]}
-      />
-    );
-  }
+  type StaffWithRoles = QueryData<typeof staffQuery>;
+  const rawStaffData: StaffWithRoles = staffRes.data ?? [];
 
-  const staff = ((staffRes.data as any) ?? []) as IStaff[];
-  const roles = (roleRes.data ?? []) as IRole[];
+  const staff = z.array(staffSchema).parse(rawStaffData);
+  const roles = (roleRes.data ?? []) as RoleSchema[];
 
   return <StaffClient initialStaff={staff} initialRoles={roles} />;
 }

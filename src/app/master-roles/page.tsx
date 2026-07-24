@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import RolesClient from "./_components/client-roles";
-import { IRole } from "@/type/role";
-import { DataErrorState } from "@/components/feedback/data-error-state";
+import RolesClient from "./_components/roles-client";
 
 export default async function RolesPage() {
   const supabase = await createClient();
@@ -21,17 +19,7 @@ export default async function RolesPage() {
     .select("id, role_name, is_active")
     .order("role_name", { ascending: true });
 
-  if (error) {
-    console.error("[RolesPage] fetching error:", error.message);
-    <DataErrorState
-      title="Roles Page"
-      message={error.message}
-      tableName="roles"
-      columns={["id", "role_name", "is_active"]}
-    />;
-  }
+  if (error) throw new Error("Failed to insert Staff.");
 
-  const roles: IRole[] = data ?? [];
-
-  return <RolesClient initialRoles={roles} />;
+  return <RolesClient initialRoles={data} />;
 }

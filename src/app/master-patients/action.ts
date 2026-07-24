@@ -2,56 +2,72 @@
 
 import { revalidatePath } from "next/cache";
 import { authAction } from "@/utils/action";
+import { patientSchema } from "./schema";
 
-const PATH_PATIENT = "/master-patient";
+const PATH = "/master-patient";
 
-// --- create patient ---
-export async function createPatient(data: any) {
+// =====
+// == CREATE PATIENT ==
+export async function createPatient(formData: unknown) {
   return authAction(async ({ supabase, isGuest }) => {
-    const { error: pError } = await supabase.from("patients").insert({
-      patient_name: data.patient_name,
-      mr_number: data.mr_number,
-      gender: data.gender,
-      birth_date: data.birth_date,
-      phone: data.phone,
-      address: data.address,
+    const validate = patientSchema.safeParse(formData);
+    if (!validate.success) throw new Error("Invalid input data.");
+
+    const { patient_name, mr_number, gender, birth_date, phone, address } =
+      validate.data;
+
+    const { error } = await supabase.from("patients").insert({
+      patient_name: patient_name.trim(),
+      mr_number: mr_number.trim(),
+      gender: gender.trim(),
+      birth_date: birth_date.trim(),
+      phone: phone.trim(),
+      address: address.trim(),
       is_demo: isGuest,
     });
-    if (pError) throw new Error(`Failed to create patient: ${pError.message}`);
-    revalidatePath(PATH_PATIENT);
+    if (error) throw new Error(`Failed to create patient: ${error.message}`);
+    revalidatePath(PATH);
     return { ok: true };
   });
 }
 
-// --- update patient ---
-export async function editPatient(data: any) {
+// ======
+// == UPDATE PATIENT ==
+export async function updatePatient(formData: unknown) {
   return authAction(async ({ supabase }) => {
-    const { error: pError } = await supabase
+    const validate = patientSchema.safeParse(formData);
+    if (!validate.success) throw new Error("Invalid input data.");
+
+    const { id, patient_name, mr_number, gender, birth_date, phone, address } =
+      validate.data;
+    if (!id) throw new Error("Invalid Patient ID.");
+
+    const { error } = await supabase
       .from("patients")
       .update({
-        patient_name: data.patient_name,
-        mr_number: data.mr_number,
-        gender: data.gender,
-        birth_date: data.birth_date,
-        phone: data.phone,
-        address: data.address,
+        patient_name: patient_name.trim(),
+        mr_number: mr_number.trim(),
+        gender: gender.trim(),
+        birth_date: birth_date.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
       })
-      .eq("id", data.id);
-    if (pError) throw new Error(`Failed to edit patient: ${pError.message}`);
-    revalidatePath(PATH_PATIENT);
+      .eq("id", id);
+    if (error) throw new Error(`Failed to update patient: ${error.message}.`);
+    revalidatePath(PATH);
     return { ok: true };
   });
 }
 
-// --- delete patient ---
+// ======
+// == DELETE PATIENT ==
 export async function deletePatient(id: string) {
   return authAction(async ({ supabase }) => {
-    const { error: pError } = await supabase
-      .from("patients")
-      .delete()
-      .eq("id", id);
-    if (pError) throw new Error(`Failed to delete patient: ${pError.message}`);
-    revalidatePath(PATH_PATIENT);
+    if (!id) throw new Error("Invalid Patient ID.");
+
+    const { error } = await supabase.from("patients").delete().eq("id", id);
+    if (error) throw new Error(`Failed to delete patient: ${error.message}`);
+    revalidatePath(PATH);
     return { ok: true };
   });
 }

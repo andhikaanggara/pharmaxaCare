@@ -2,68 +2,70 @@
 
 import { revalidatePath } from "next/cache";
 import { authAction } from "@/utils/action";
+import { staffSchema } from "./schema";
 
-const PATH_STAFF = "/master-staff";
+const PATH = "/master-staff";
 
-// --- create staff ---
-export async function createStaff(formData: {
-  staff_name: string;
-  role_id: string;
-  is_active: boolean;
-}) {
+// ======
+// --- CREATE STAFF ---
+export async function createStaff(formData: unknown) {
   return authAction(async ({ supabase, isGuest }) => {
+    const validate = staffSchema.safeParse(formData);
+    if (!validate.success) throw new Error("Data input tidak valid.");
+
+    const { staff_name, role_id, is_active } = validate.data;
+
     const { error } = await supabase.from("staff").insert({
-      staff_name: String(formData.staff_name ?? "").trim(),
-      role_id: String(formData.role_id ?? ""),
-      is_active: String(formData.is_active ?? "true") !== "false",
+      staff_name: staff_name.trim(),
+      role_id,
+      is_active,
       is_demo: isGuest,
     });
 
     if (error) throw new Error(`Failed to create staff: ${error.message}`);
 
-    revalidatePath(PATH_STAFF);
+    revalidatePath(PATH);
     return { ok: true };
   });
 }
 
-// --- update staff ---
-export async function updateStaff(data: {
-  id: string;
-  staff_name: string;
-  role_id: string;
-  is_active: boolean;
-}) {
+// ======
+// --- UPDATE STAFF ---
+export async function updateStaff(formData: unknown) {
   return authAction(async ({ supabase }) => {
-    if (!data.id) throw new Error("ID petugas tidak valid.");
-    if (!data.staff_name?.trim()) throw new Error("Nama wajib diisi.");
-    if (!data.role_id) throw new Error("Peran wajib dipilih.");
+    const validate = staffSchema.safeParse(formData);
+    if (!validate.success) throw new Error("Invalid input data.");
+
+    const { id, staff_name, role_id, is_active } = validate.data;
+    if (!id) throw new Error("Invalid Staff ID.");
 
     const { error } = await supabase
       .from("staff")
       .update({
-        staff_name: data.staff_name.trim(),
-        role_id: data.role_id,
-        is_active: data.is_active,
+        staff_name: staff_name.trim(),
+        role_id,
+        is_active,
       })
-      .eq("id", data.id);
+      .eq("id", id);
 
-    if (error) throw new Error(`Failed to update staff: ${error.message}`);
+    if (error) throw new Error(`Failed to update staff: ${error.message}.`);
 
-    revalidatePath(PATH_STAFF);
+    revalidatePath(PATH);
     return { ok: true };
   });
 }
 
-// --- delete staff ---
+// ======
+// --- DELETE STAFF ---
 export async function deleteStaff(id: string) {
   return authAction(async ({ supabase }) => {
-    if (!id) throw new Error("ID tidak ditemukan.");
+    if (!id) throw new Error("Invalid Staff ID.");
 
     const { error } = await supabase.from("staff").delete().eq("id", id);
 
     if (error) throw new Error(`Failed to delete staff: ${error.message}`);
 
-    revalidatePath(PATH_STAFF);
+    revalidatePath(PATH);
     return { ok: true };
   });
 }

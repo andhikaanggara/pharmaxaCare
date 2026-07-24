@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { useTransition } from "react";
+import { logoutAction } from "./logout-action";
 import {
   Calendar,
   Home,
@@ -11,7 +13,7 @@ import {
   Wallet,
   Pill,
 } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   SidebarMenuSub,
@@ -33,7 +35,6 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { createClient } from "@/utils/supabase/client";
 import {
   Collapsible,
   CollapsibleContent,
@@ -47,7 +48,8 @@ const data = {
     //   url: "/",
     //   icon: Home,
     // },
-    // { title: "Patient Visits", url: "/patient-visits", icon: Clipboard },
+
+    { title: "Patient Visits", url: "/patient-visits", icon: Clipboard },
 
     {
       title: "Attendance",
@@ -77,10 +79,10 @@ const data = {
       icon: Database,
       isActive: true,
       items: [
-        // { title: "Patients", url: "/master-patients" },
+        { title: "Patients", url: "/master-patients" },
         { title: "Staff", url: "/master-staff" },
         { title: "Roles", url: "/master-roles" },
-        // { title: "Treatments", url: "/master-treatments" },
+        { title: "Treatments", url: "/master-treatments" },
       ],
     },
   ],
@@ -88,9 +90,9 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { setOpenMobile, isMobile } = useSidebar();
-  const supabase = createClient();
-  const router = useRouter();
   const pathname = usePathname();
+
+  const [isPending, startTransition] = useTransition();
 
   const handleNavClick = () => {
     if (isMobile) {
@@ -98,13 +100,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
     if (isMobile) {
       setOpenMobile(false);
     }
-    router.push("/login");
-    router.refresh();
+    startTransition(async () => {
+      await logoutAction();
+    });
   };
 
   return (
@@ -120,10 +122,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-bold text-blue-300">
-                    Rahayu Medika
+                    Pharmaxa Care
                   </span>
                   <span className="truncate text-xs text-muted-foreground">
-                    Management System
+                    Clinic Management App
                   </span>
                 </div>
               </Link>
@@ -172,9 +174,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         {item.items?.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton asChild>
-                              <a href={subItem.url}>
+                              <Link href={subItem.url} onClick={handleNavClick}>
                                 <span>{subItem.title}</span>
-                              </a>
+                              </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         ))}

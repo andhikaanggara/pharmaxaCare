@@ -2,52 +2,60 @@
 
 import { revalidatePath } from "next/cache";
 import { authAction } from "@/utils/action";
-import { RoleSchema } from "./schema";
+import { roleSchema, RoleSchema } from "./schema";
 
 const PATH = "/master-roles";
 
-// --- new create role
-export async function createRole(formData: RoleSchema) {
+// ==========
+// == CREATE ROLE ==
+export async function createRole(formData: unknown) {
   return authAction(async ({ supabase, isGuest }) => {
-    if (!formData.role_name?.trim()) throw new Error("Peran wajib diisi.");
+    const validate = roleSchema.safeParse(formData);
+    if (!validate.success) throw new Error("Invalid input data.");
 
+    const { role_name, is_active } = validate.data;
     const { error } = await supabase.from("roles").insert({
-      role_name: String(formData.role_name).trim(),
-      is_active: String(formData.is_active ?? "true") !== "false",
+      role_name: role_name.trim(),
+      is_active,
       is_demo: isGuest,
     });
-
     if (error) throw new Error(`Failed to create role: ${error.message}`);
-
     revalidatePath(PATH);
     return { ok: true };
   });
 }
 
-// --- update role ---
-export async function updateRole(data: RoleSchema) {
+// ==========
+// == UPDATE ROLE ==
+export async function updateRole(formData: unknown) {
   return authAction(async ({ supabase }) => {
-    if (!data.role_name?.trim()) throw new Error("Nama Role Wajib diisi.");
+    const validate = roleSchema.safeParse(formData);
+    if (!validate.success) throw new Error("Invalid input data.");
+
+    const { id, role_name, is_active } = validate.data;
+    if (!id) throw new Error("Invalid Role ID.");
 
     const { error } = await supabase
       .from("roles")
-      .update({ role_name: data.role_name.trim(), is_active: data.is_active })
-      .eq("id", data.id);
+      .update({
+        role_name: role_name.trim(),
+        is_active,
+      })
+      .eq("id", id);
 
-    if (error) throw new Error(`Failed to update role: ${error.message}`);
-
+    if (error) throw new Error(`Failed to update role: ${error.message}.`);
     revalidatePath(PATH);
     return { ok: true };
   });
 }
 
-// --- delete role ---
+// ==========
+// == DELETE ROLE ==
 export async function deleteRole(id: string) {
   return authAction(async ({ supabase }) => {
-    if (!id) throw new Error("ID tidak ditemukan.");
+    if (!id) throw new Error("Invalid Role ID.");
 
     const { error } = await supabase.from("roles").delete().eq("id", id);
-
     if (error) throw new Error(`Failed to delete role: ${error.message}`);
 
     revalidatePath(PATH);

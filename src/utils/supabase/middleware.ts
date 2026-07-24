@@ -21,6 +21,7 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
+  // 9 Hour Session Expiration Check
   const {
     data: { session },
   } = await supabase.auth.getSession();

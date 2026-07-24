@@ -1,61 +1,71 @@
-# 🏥 Pharmaxa Care (Careflow)
+# 🏥 Pharmaxa Care
 
-A high-performance, real-time Clinical Management System built to eliminate administrative overhead and manual tracking in healthcare facilities.
+A high-performance, real-time Clinical & Pharmacy Management System engineered to eliminate administrative overhead, streamline patient logs, and eradicate manual spreadsheet tracking in healthcare facilities.
 
-> **Production Status:** The Core Staff Attendance, Master Staff, and Master Role modules are fully operational, optimized, and integrated with a relational Supabase database architecture.
-
----
-
-## 🚀 Business Impact & Metriks (Why This Matters)
-* **1-Click Payroll Preparation:** Reduced monthly attendance compilation and cut-off reporting loops from manual, error-prone spreadsheets into a **single-click instant task** generating pre-formatted multi-sheet Excel workbooks.
-* **Smart Cut-off Filtering:** Automatically aligns with clinical standard operating procedures (SOPs) by defaulting views and exports to the specific 28th (past month) – 27th (current month) cycle.
+> **Production Status:** Core modules—including **Staff Attendance Engine**, **Patient Visit Logging**, and **Master Data Management (Staff, Patient, & Role Configurations)**—are fully operational and integrated with a relational Supabase database architecture.
 
 ---
 
-## ✨ Key Features & Modules
+## 🚀 Business Impact & Metrics (Why This Matters)
 
-### 1. 📅 Staff Attendance Engine
-* **Relational Multi-Staff Shifts:** Handles complex medical shift patterns (Pagi, Sore, Malam) mapped dynamically into distinct healthcare professional roles.
-* **Dynamic Relational Aggregation:** Converts single row-based PostgreSQL entries into streamlined, grouped shift data for multi-role medical staff configurations.
-* **Instant Exports (`exceljs`):** Compiles live attendance records into a multi-sheet downloadable Excel workbook, dynamically generating **1 dedicated sheet per staff member** with automated native Excel totals (`=SUM()`).
+- **1-Click Payroll & Attendance Preparation:** Converts manual, error-prone spreadsheets into an **instant 1-click process**, generating pre-formatted multi-sheet Excel workbooks with automated formulas.
+- **Smart Cut-Off Cycle:** Automatically aligns with clinical SOPs by defaulting views and exports to custom reporting cycles (e.g., 28th past month – 27th current month).
+- **Streamlined Patient Tracking:** Replaces manual paper/spreadsheet patient logs with structured relational records to accelerate daily clinic administration and audits.
 
-### 2. 👥 Master Staff Management
-* Track and manage clinical staff directory, employment history, role mapping, and active/inactive personnel statuses under rigorous TypeScript typings.
+---
 
-### 3. 🛡️ Master Role Configuration
-* Scalable relational model to define healthcare facility departments (e.g., Apoteker, Dokter, Asisten Apoteker, Perawat) allowing flexible dynamic forms.
+## ✨ Key Features & Active Modules
+
+### 1. 📅 Staff Attendance & Shift Engine
+
+- **Relational Multi-Staff Shifts:** Handles complex medical shift patterns (Pagi, Sore, Malam) mapped dynamically across distinct healthcare professional roles.
+- **Dynamic Relational Aggregation:** Converts row-based PostgreSQL entries into streamlined shift data for multi-role medical staff configurations.
+- **Automated Excel Export (`exceljs`):** Compiles live attendance records into downloadable multi-sheet Excel workbooks—dynamically generating **1 dedicated sheet per staff member** with native Excel summary formulas (`=SUM()`).
+
+### 2. 📋 Patient Visit & Master Log
+
+- **Centralized Visit Records:** Tracks daily patient arrivals, assigned medical staff, visit timestamps, and service categories.
+- **Master Patient Management:** Structured registry for patient demographic data, medical record indexing, and visit histories.
+
+### 3. 👥 Master Staff & Dynamic Role Management
+
+- **Staff Directory:** Tracks clinical personnel, employment statuses, and dynamic role assignments under strict TypeScript typings.
+- **Relational Role Schema:** Scalable relational model defining healthcare facility departments (e.g., Apoteker, Dokter, Asisten Apoteker, Perawat) to feed dynamic frontend forms.
 
 ---
 
 ## 🛠️ Technical Implementation Highlights
 
-* **Framework:** Next.js 14/15 (App Router) utilizing Server Page data fetching with dynamic Client Component UI interaction states.
-* **State Management & Validation:** Fully structured under **React Hook Form** paired with **Zod Schema validation**, ensuring seamless, error-free client-side controls.
-* **Database & Persistence:** **Supabase (PostgreSQL)** leveraging deep relational schemas, Foreign Key constraints (`attendance_staff_id_fkey`), and automated primary key UUID generations.
-* **UI & Component Architecture:** Built using **Tailwind CSS** and **Shadcn UI**, utilizing highly generic *reusable* components such as custom programmatic dialog shells (`FormDialogShell`, `ConfirmDeleteDialog`) and strict generic type-safe combobox fields (`InputCombobox<T>`).
+- **Framework:** Next.js 14/15 (App Router) utilizing Server Components for data fetching paired with interactive Client Component states.
+- **Forms & Validation:** Built using **React Hook Form** paired with **Zod Schema validation**, ensuring type-safe, resilient client-side controls.
+- **Database & Persistence:** **Supabase (PostgreSQL)** leveraging deep relational schemas, Foreign Key constraints (`attendance_staff_id_fkey`), and automated primary key UUID generations.
+- **UI & Component Architecture:** Styled with **Tailwind CSS** and **Shadcn UI**, featuring generic, highly reusable UI modules like programmatic modal shells (`FormDialogShell`, `ConfirmDeleteDialog`) and strict generic type-safe inputs (`InputCombobox<T>`).
 
 ---
 
 ## 📦 Tech Stack
 
 - **Frontend:** Next.js, TypeScript, Tailwind CSS, Shadcn UI (Radix UI)
-- **Forms & Validation:** React Hook Form, @hookform/resolvers, Zod
-- **Data Engineering & Formatting:** Supabase JS Client, ExcelJS, File-Saver, Date-fns
-- **Icons:** Lucide React
+- **Forms & Validation:** React Hook Form, `@hookform/resolvers`, Zod
+- **Data Engineering & Export:** Supabase JS Client, ExcelJS, File-Saver, Date-fns
+- **Icons & Styling:** Lucide React, Tailwind Merge, CLSX
 
 ---
 
-## 🛣️ Production Roadmap
+## 🛣️ Production & Feature Roadmap
 
-- [x] Multi-sheet automated Excel reporting tool engine.
-- [x] Dynamic relational form fields handling multi-role dropdown selection.
-- [ ] Role-Based Access Control (RBAC) authorization middleware.
-- [ ] Clinic POS (Point of Sales) & Drug Procurement Integration.
+- [x] Multi-sheet automated Excel reporting engine (1 sheet per staff).
+- [x] Master Staff, Role Configuration, and Attendance management modules.
+- [x] Patient Visit & Master Log entry system.
+- [ ] **In Progress:** Patient Treatment & Procedure Recording Module (_Pencatatan Tindakan Pasien_).
+- [ ] **Planned:** Daily Financial Summary & Automated WhatsApp Export Engine.
+- [ ] **Planned:** Role-Based Access Control (RBAC) & Authorization Middleware.
+- [ ] **Planned:** Clinic POS (Point of Sale) & Drug Procurement / Inventory System.
 
 ---
 
 ## 🌐 Live Demo & Deployment
 
-The application is fully deployed and production-ready. You can access the live system, explore the relational grid table, test the dynamic form validation, and try the 1-click Excel export via the link below:
+The application is deployed and updated live. You can explore the active relational tables, test the form validations, and evaluate the 1-click Excel export functionality:
 
 🔗 **Live Production URL:** [https://rahayu-medika.vercel.app/](https://rahayu-medika.vercel.app/)

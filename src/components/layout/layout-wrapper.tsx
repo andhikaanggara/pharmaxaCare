@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "./app-sidebar";
+import { AppSidebar } from "./sidebar/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/ui/sonner";
 

@@ -40,6 +40,7 @@ export function VisitListDesktop({
               <TableCell>{row.patients.patient_name}</TableCell>
               <TableCell>{row.poly_destination}</TableCell>
               <TableCell>{row.recipe_type}</TableCell>
+              <TableCell>{}</TableCell>
               <TableCell>
                 <NumericFormat
                   thousandSeparator="."

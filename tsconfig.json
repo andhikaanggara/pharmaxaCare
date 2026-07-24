@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "src/app/attendance/_components/attendance-list-mobile.tsx", "src/lib/utils/format.ts"  ],
+, "src/app/attendance/_components/attendance-list-mobile.tsx", "src/lib/utils/format.ts", "src/app/master-treatments/_components/treatments-client.tsx"  ],
   "exclude": ["node_modules"]
 }

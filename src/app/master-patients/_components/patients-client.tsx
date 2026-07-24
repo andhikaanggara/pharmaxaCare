@@ -1,183 +1,147 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
-import { toast } from "sonner";
-import { Edit3, Search, Trash2, Users } from "lucide-react";
+import { Search, Users } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
 import { SectionHeader } from "@/components/section/section-header";
-import { SectionTable, TableColumn } from "@/components/section/section-table";
 import { ConfirmDeleteDialog } from "@/components/feedback/confirm-delete-dialog";
 import { PatientForm } from "@/app/master-patients/_components/patient-form";
 import { deletePatient } from "@/app/master-patients/action";
 
 import { formatDateIndo } from "@/lib/utils/format";
-import { Patient } from "@/type/patient";
+import { PatientSchema } from "../schema";
+import { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/data-table";
+import { MobileDataTable } from "@/components/mobile-data-table";
 
-const header: TableColumn<Patient>[] = [
+const columns: ColumnDef<PatientSchema>[] = [
   {
     header: "Patient Name",
-    accessor: "patient_name",
+    accessorKey: "patient_name",
   },
-  { header: "MR Number", accessor: "mr_number" },
-  { header: "Gender", accessor: "gender" },
+  { header: "MR Number", accessorKey: "mr_number" },
+  { header: "Gender", accessorKey: "gender" },
   {
     header: "Birth Date",
-    accessor: (patient) => formatDateIndo(patient.birth_date),
+    accessorFn: (patient) => formatDateIndo(patient.birth_date),
   },
-  { header: "Phone", accessor: "phone" },
-  { header: "Address", accessor: "address" },
+  { header: "Phone", accessorKey: "phone" },
+  { header: "Address", accessorKey: "address" },
 ];
+
+type PatientsClientProps = {
+  initialPatients: PatientSchema[];
+};
 
 export default function PatientsClient({
   initialPatients,
-}: {
-  initialPatients: Patient[];
-}) {
-  // Hooks & System State
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  // Component States
+}: PatientsClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | undefined>(
-    undefined,
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<PatientSchema | null>(
+    null,
   );
-  const [isAlertDeleteOpen, setIsAlertDeleteOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null);
 
-  // DERIVED STATES & FILTERING
+  // === FILTER ===
   const filteredPatients = useMemo(() => {
-    if (!searchQuery.trim()) return initialPatients;
-
-    const lowerCaseQuery = searchQuery.toLowerCase();
+    const lowercasedQuery = searchQuery.toLowerCase();
+    if (!lowercasedQuery) return initialPatients;
     return initialPatients.filter(
       (patient) =>
-        patient.patient_name.toLowerCase().includes(lowerCaseQuery) ||
-        patient.mr_number.toLowerCase().includes(lowerCaseQuery),
+        patient.patient_name.toLowerCase().includes(lowercasedQuery) ||
+        patient.mr_number.toLowerCase().includes(lowercasedQuery),
     );
   }, [searchQuery, initialPatients]);
 
-  // Even Handlers
-  const handleOpenCreate = () => {
-    setSelectedPatient(undefined);
+  // === HANDLER
+  const handleCreate = () => {
+    setSelectedPatient(null);
     setIsFormOpen(true);
   };
 
-  const handleOpenEdit = (patient: Patient) => {
+  const handleEdit = (patient: PatientSchema) => {
     setSelectedPatient(patient);
     setIsFormOpen(true);
   };
 
-  const handleDeleteTrigger = (patient: Patient) => {
-    setDeleteTarget(patient);
-    setIsAlertDeleteOpen(true);
-  };
-
-  const onConfirmDelete = () => {
-    if (!deleteTarget) return;
-    setIsAlertDeleteOpen(false);
-    startTransition(async () => {
-      const result = await deletePatient(deleteTarget.id);
-      if (result.error) {
-        toast.error(
-          `Gagal menghapus pasien "${deleteTarget.patient_name}": ${result.error}`,
-          { duration: 8000 },
-        );
-      } else {
-        setIsAlertDeleteOpen(false);
-        setDeleteTarget(null);
-        router.refresh();
-        toast.success(
-          `Pasien "${deleteTarget.patient_name}" berhasil dihapus`,
-          { duration: 8000 },
-        );
-      }
-    });
+  const handleDelete = (patient: PatientSchema) => {
+    setSelectedPatient(patient);
+    setDeleteDialogOpen(true);
   };
 
   return (
     <div className="mx-auto flex w-full flex-col gap-6 p-4 md:p-6 h-[calc(100vh-64px)] overflow-hidden">
       <SectionHeader
-        title="Patients"
+        title="Master Patients"
         description="Manage your patients"
         icon={Users}
         actionLabel="Create Patient"
-        onAction={handleOpenCreate}
+        onAction={handleCreate}
       />
 
-      <div className="relative md:w-70">
-        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <section className="relative md:w-70">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          type="text"
+          placeholder="Search . . ."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 pr-4 w-full"
+          className="w-full pl-9 pr-4"
         />
+      </section>
+
+      {/* Mobile View */}
+      <div className="grid grid-cols-1 gap-4 md:hidden overflow-auto max-h-full relative">
+        {filteredPatients.map((items) => (
+          <MobileDataTable
+            key={items.id}
+            title={items.patient_name}
+            action={items.mr_number}
+            onEdit={() => handleEdit(items)}
+            onDelete={() => handleDelete(items)}
+          >
+            <div className="grid grid-cols-3 w-full mb-2">
+              <p>{items.gender}</p>
+              <p>{items.birth_date}</p>
+              <p>{items.phone}</p>
+            </div>
+            <p>{items.address}</p>
+          </MobileDataTable>
+        ))}
       </div>
 
-      <SectionTable
+      {/* Desktop View */}
+      <DataTable
+        columns={columns}
         data={filteredPatients}
-        header={header}
-        emptyMessage={
-          searchQuery
-            ? `Tidak ditemukan pasien dengan kata kunci "${searchQuery}"`
-            : "Belum ada pasien. Tambahkan dari tombol di atas."
-        }
-        onEdit={handleOpenEdit}
-        onDelete={handleDeleteTrigger}
-        mobileRender={(patient) => (
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center pb-2">
-              <h4 className="font-bold text-lg">{patient.patient_name}</h4>
-              <Badge variant="outline">{patient.mr_number}</Badge>
-            </div>
-            <div className="grid grid-cols-3 w-full">
-              <p>{patient.gender}</p>
-              <p>{patient.birth_date}</p>
-              <p>{patient.phone}</p>
-            </div>
-            <div>{patient.address}</div>
-            <div className="flex gap-2 mt-2">
-              <Button
-                className="w-1/2"
-                variant="outline"
-                onClick={() => handleOpenEdit(patient)}
-              >
-                Edit
-              </Button>
-              <Button
-                className="w-1/2"
-                variant="destructive"
-                onClick={() => handleDeleteTrigger(patient)}
-              >
-                Hapus
-              </Button>
-            </div>
-          </div>
-        )}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        hideOnMobile
       />
 
       <PatientForm
-        isOpen={isFormOpen}
+        open={isFormOpen}
         onOpenChange={setIsFormOpen}
-        data={initialPatients}
         editData={selectedPatient}
+        initialData={initialPatients?.length}
       />
 
       <ConfirmDeleteDialog
-        isOpen={isAlertDeleteOpen}
-        onOpenChange={setIsAlertDeleteOpen}
+        isOpen={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
         entityName="Pasien"
-        itemName={deleteTarget?.patient_name ?? ""}
-        onConfirm={onConfirmDelete}
-        isPending={isPending}
+        target={
+          selectedPatient && selectedPatient.id
+            ? {
+                id: selectedPatient.id,
+                name: selectedPatient.patient_name,
+              }
+            : null
+        }
+        onDeleteAction={deletePatient}
       />
     </div>
   );

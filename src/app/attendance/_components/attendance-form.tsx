@@ -4,7 +4,7 @@ import { useEffect, useTransition } from "react";
 import { format } from "date-fns";
 
 import { createAttendance, updateAttendance } from "../actions";
-import { FormDialogShell } from "@/components/form-dialog-shell";
+import { DialogForm } from "@/components/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -20,7 +20,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { InputCombobox } from "@/components/input-combobox";
+import { UserCombobox } from "@/components/user-combobox";
 
 // 1. Definisikan Zod Schema Dinamis agar sesuai dengan jumlah peran/roles di klinik
 const attendanceFormSchema = z.object({
@@ -134,7 +134,7 @@ export function AttendanceForm({
   };
 
   return (
-    <FormDialogShell
+    <DialogForm
       isOpen={isDialogOpsOpen}
       onOpenChange={setIsDialogOpsOpen}
       title={`${isEditMode ? "Edit" : "Tambah"} Presensi`}
@@ -194,7 +194,7 @@ export function AttendanceForm({
             (s) => s.roles?.role_name === role && s.is_active,
           );
           return (
-            <InputCombobox<IStaff, AttendanceFormValues>
+            <UserCombobox<IStaff, AttendanceFormValues>
               key={role}
               control={control}
               name={`rolesInput.${role}`}
@@ -205,8 +205,7 @@ export function AttendanceForm({
             />
           );
         })}
-
       </form>
-    </FormDialogShell>
+    </DialogForm>
   );
 }

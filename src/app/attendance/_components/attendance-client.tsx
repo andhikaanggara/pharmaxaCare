@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarIcon, Download, Edit3, Trash2 } from "lucide-react";
 
 // UI Components
@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateIndo } from "@/lib/utils/format";
 import { ConfirmDeleteDialog } from "@/components/feedback/confirm-delete-dialog";
-import { delleteAttendance } from "../actions";
+import { deleteAttendance } from "../actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { exportAttendance } from "@/lib/utils/export-attendance";
@@ -44,19 +44,16 @@ export default function AttendanceClient({
   staffList: IStaff[];
   roles: IRole[];
 }) {
-  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
 
   // --- UI States ---
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isAlertDeleteOpen, setIsAlertDeleteOpen] = useState(false);
-  const [isPendingDelete, startTransition] = useTransition();
 
   // --- Data States ---
   const [selected, setSelected] = useState<AttendanceFormData | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<GroupedAttendance | null>(
-    null,
-  );
+  const [selectedAttendance, setSelectedAttendance] =
+    useState<GroupedAttendance | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -154,7 +151,7 @@ export default function AttendanceClient({
   };
 
   const handleDeleteTrigger = (att: GroupedAttendance) => {
-    setDeleteTarget(att);
+    setSelectedAttendance(att);
     setIsAlertDeleteOpen(true);
   };
 
@@ -296,29 +293,16 @@ export default function AttendanceClient({
       <ConfirmDeleteDialog
         isOpen={isAlertDeleteOpen}
         onOpenChange={setIsAlertDeleteOpen}
-        entityName="Presensi"
-        itemName={
-          deleteTarget
-            ? `${formatDateIndo(deleteTarget.date)} - Shift ${deleteTarget.shift}`
-            : ""
+        entityName="Attendance"
+        target={
+          selectedAttendance
+            ? {
+                id: `${selectedAttendance.date}|${selectedAttendance.shift}`,
+                name: `${selectedAttendance.date} (Shift ${selectedAttendance.shift})`,
+              }
+            : null
         }
-        isPending={isPendingDelete}
-        onConfirm={() => {
-          if (!deleteTarget) return;
-          startTransition(async () => {
-            const res = await delleteAttendance(
-              deleteTarget.date,
-              deleteTarget.shift,
-            );
-            if (res.error) {
-              toast.error(res.error);
-            } else {
-              setIsAlertDeleteOpen(false);
-              router.refresh();
-              toast.success("Presensi berhasil dihapus");
-            }
-          });
-        }}
+        onDeleteAction={deleteAttendance}
       />
     </div>
   );
