@@ -34,7 +34,7 @@ export function UserCombobox({
   const [searchQuery, setSearchQuery] = useState("");
 
   const activeItem = useMemo(() => {
-    return items.find((item) => item.id === value);
+    return items?.find((item) => item.id === value);
   }, [value, items]);
 
   useEffect(() => {

@@ -6,9 +6,9 @@ import AttendanceClient from "@/app/attendance/_components/attendance-client";
 import { DataErrorState } from "@/components/feedback/data-error-state";
 
 //  type
-import type { IRole } from "@/type/role";
-import type { IStaff } from "@/type/staff";
 import { AttendanceSchema } from "./_components/schema";
+import { RoleSchema } from "../master-roles/schema";
+import { StaffSchema } from "../master-staff/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -72,8 +72,8 @@ export default async function AttendancePage() {
     );
   }
 
-  const roles = (roleRes.data ?? []) as IRole[];
-  const staff = ((staffRes.data as any) ?? []) as IStaff[];
+  const roles = (roleRes.data ?? []) as RoleSchema[];
+  const staff = ((staffRes.data as any) ?? []) as StaffSchema[];
   const rows = ((attendanceRes.data as any) ?? []) as AttendanceSchema[];
 
   return (

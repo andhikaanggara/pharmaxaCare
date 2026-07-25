@@ -24,11 +24,12 @@ import {
 type StaffFormProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editData: StaffSchema | null;
+  editData?: StaffSchema | null;
   rolesData: RoleSchema[];
 };
 
 const defaultValues: StaffSchema = {
+  id: "",
   staff_name: "",
   role_id: "",
   is_active: true,
@@ -64,13 +65,11 @@ export function StaffForm({
   const handleSubmit = (data: StaffSchema) => {
     startTransition(async () => {
       try {
-        let result;
-        if (isEditMode && editData) {
-          result = await updateStaff({ ...data, id: editData.id });
-        } else {
-          result = await createStaff(data);
-        }
-        if (result?.ok) {
+        const result = isEditMode
+          ? await updateStaff({ ...data, id: editData.id })
+          : await createStaff(data);
+        
+          if (result?.ok) {
           onOpenChange(false);
           form.reset(defaultValues);
         }

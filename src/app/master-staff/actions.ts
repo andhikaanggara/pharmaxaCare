@@ -11,7 +11,7 @@ const PATH = "/master-staff";
 export async function createStaff(formData: unknown) {
   return authAction(async ({ supabase, isGuest }) => {
     const validate = staffSchema.safeParse(formData);
-    if (!validate.success) throw new Error("Data input tidak valid.");
+    if (!validate.success) throw new Error("Invalid input data.");
 
     const { staff_name, role_id, is_active } = validate.data;
 

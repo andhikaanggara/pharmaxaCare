@@ -27,7 +27,7 @@ type TreatmentFormProps = {
   editData: TreatmentSchema | null;
 };
 
-const defaultValues: z.infer<typeof treatmentSchema> = {
+const defaultValues: TreatmentSchema = {
   treatment_name: "",
 };
 

@@ -31,7 +31,7 @@ export function DialogForm({
 }: DialogFormProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-125">
         <DialogHeader>
           <DialogTitle>
             {isEditMode ? `Update ${title}` : `Create ${title}`}

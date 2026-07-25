@@ -1,13 +1,10 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
-// component
-import { DataErrorState } from "@/components/feedback/data-error-state";
-
 //  type
-import type { IStaff } from "@/type/staff";
-import { IVisits } from "@/type/visits";
-import PatientVisitsClient from "./visit-client";
+import { StaffSchema } from "../master-staff/schema";
+import { QueryData } from "@supabase/supabase-js";
+import VisitSClient from "./_componenets/visits-client";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +19,12 @@ export default async function PatientVisitsPage() {
     redirect("/login");
   }
 
+  const visitsQuery = supabase
+    .from("visits")
+    .select(
+      "id, date, shift, patient_id, poly, recipe, payment, payment_methode, create_by, patients(patient_name, mr_number, gender, birth_date, address)",
+    );
+
   const [staffRes, patientRes, treatmentRes, visitsRes] = await Promise.all([
     supabase
       .from("staff")
@@ -35,35 +38,24 @@ export default async function PatientVisitsPage() {
       .from("treatments")
       .select("id, treatment_name")
       .order("treatment_name", { ascending: true }),
-    supabase
-      .from("patient_visits")
-      .select(
-        "id, date, shift, patient_id, poly_destination, recipe_type, total_amount, payment, payment_methode, create_by, patients(patient_name, mr_number, gender, birth_date, address))",
-      )
-      .returns<IVisits[]>(),
+    visitsQuery,
   ]);
 
   // return message error
 
-  if (staffRes.error) {
-    return (
-      <DataErrorState
-        title="Manajement Petugas"
-        message={staffRes.error.message}
-        tableName="staff"
-        columns={["id", "staff_name", "role", "is_active"]}
-      />
-    );
-  }
+  if (visitsRes.error) throw new Error("Failed to insert Visits");
 
-  const staff = (staffRes.data ?? []) as IStaff[];
+  type VisitsWithPatient = QueryData<typeof visitsQuery>;
+  const rawVisistsData: VisitsWithPatient = visitsRes.data ?? [];
+
+  const staff = (staffRes.data ?? []) as StaffSchema[];
   const patients = patientRes.data ?? [];
   const treatments = treatmentRes.data ?? [];
-  const visits = (visitsRes.data ?? []) as IVisits[];
+  const visits = (visitsRes.data ?? []) as VisitsWithPatient;
 
   return (
-    <PatientVisitsClient
-      staffList={staff}
+    <VisitSClient
+      initialStaff={staff}
       patientList={patients}
       treatments={treatments}
       visitsList={visits}

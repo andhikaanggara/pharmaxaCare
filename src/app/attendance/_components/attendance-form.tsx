@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { format } from "date-fns";
 
 import { createAttendance, updateAttendance } from "../actions";
@@ -14,31 +14,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { IStaff } from "@/type/staff";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
 import { UserCombobox } from "@/components/user-combobox";
+import { StaffSchema } from "@/app/master-staff/schema";
+import { attendanceSchema, AttendanceSchema } from "../schema";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+import { Plus, X } from "lucide-react";
+import { StaffForm } from "@/app/master-staff/_components/staff-form";
 
-// 1. Definisikan Zod Schema Dinamis agar sesuai dengan jumlah peran/roles di klinik
-const attendanceFormSchema = z.object({
-  date: z.string().min(1, "Tanggal wajib diisi"),
-  shift: z.enum(["Pagi", "Sore", "Malam"]),
-  // Menampung ID staff secara dinamis berbasis nama peran (Role Name)
-  rolesInput: z.record(z.string(), z.string().optional()),
-});
-
-type AttendanceFormValues = z.infer<typeof attendanceFormSchema>;
-
-interface AttendanceFormProps {
-  isDialogOpsOpen: boolean;
-  setIsDialogOpsOpen: (open: boolean) => void;
-  editing: ({ date: string; shift: string } & Record<string, string>) | null;
+type AttendanceFormProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  editData: ({ date: string; shift: string } & Record<string, string>) | null;
   roles: string[];
-  staffList: IStaff[];
-}
+  staffList: StaffSchema[];
+};
 
 function getShiftDefault() {
   const h = new Date().getHours();
@@ -47,165 +46,210 @@ function getShiftDefault() {
   return "Malam";
 }
 
+const SHIFTS = ["Pagi", "Sore", "Malam"];
+
+const defaultValues: AttendanceSchema = {
+  date: format(new Date(), "yyyy-MM-dd"),
+  shift: getShiftDefault() as "Pagi" | "Sore" | "Malam",
+  staff_id: [],
+};
+
 export function AttendanceForm({
-  isDialogOpsOpen,
-  setIsDialogOpsOpen,
-  editing,
+  open,
+  onOpenChange,
+  editData,
   roles,
   staffList,
 }: AttendanceFormProps) {
-  const isEditMode = editing !== null;
-  const router = useRouter();
+  const isEditMode = !!editData;
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const SHIFTS = ["Pagi", "Sore", "Malam"];
 
-  // 2. Inisialisasi React Hook Form
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    control,
-    formState: { errors },
-  } = useForm<AttendanceFormValues>({
-    resolver: zodResolver(attendanceFormSchema),
-    defaultValues: {
-      date: format(new Date(), "yyyy-MM-dd"),
-      shift: getShiftDefault() as "Pagi" | "Sore" | "Malam",
-      rolesInput: {},
-    },
+  const form = useForm<AttendanceSchema>({
+    resolver: zodResolver(attendanceSchema),
+    defaultValues: defaultValues,
   });
 
-  const watchedDate = watch("date");
-  const watchedShift = watch("shift");
-  const watchedRolesInput = watch("rolesInput") || {};
-
-  // 3. Sinkronisasi Data Saat Dialog Buka/Edit Mode
   useEffect(() => {
-    if (isDialogOpsOpen) {
-      if (isEditMode && editing) {
-        // ambil data id staff per role dari object editing
-        const initialRolesInput: Record<string, string> = {};
-        roles.forEach((role) => {
-          if (editing[role]) {
-            initialRolesInput[role] = editing[role];
-          }
-        });
-        reset({
-          date: editing.date,
-          shift: editing.shift as "Pagi" | "Sore" | "Malam",
-          rolesInput: initialRolesInput,
+    if (open) {
+      if (editData) {
+        form.reset({
+          date: editData.date,
+          shift: editData.shift as "Pagi" | "Sore" | "Malam",
+          staff_id: (editData as any).staff_id || [],
         });
       } else {
-        reset({
-          date: format(new Date(), "yyyy-MM-dd"),
-          shift: getShiftDefault() as "Pagi" | "Sore" | "Malam",
-          rolesInput: {},
-        });
+        form.reset(defaultValues);
       }
     }
-  }, [isDialogOpsOpen, isEditMode, editing, roles, reset]);
+  }, [open, isEditMode, roles, form]);
 
-  // 4. Proses Submit Form
-  const onSubmit = (values: AttendanceFormValues) => {
-    // Bangun FormData untuk dikirim ke Server Action bawaan Cursor Anda
+  const handleSubmit = (data: AttendanceSchema) => {
     const fd = new FormData();
-    fd.append("date", values.date);
-    fd.append("shift", values.shift);
+    fd.append("date", data.date);
+    fd.append("shift", data.shift);
 
-    Object.values(values.rolesInput).forEach((staffId) => {
+    Object.values(data.staff_id).forEach((staffId) => {
       if (staffId) fd.append("staff_id", staffId);
     });
 
     startTransition(async () => {
-      const res = isEditMode
-        ? await updateAttendance(editing.date, editing.shift, fd)
+      const result = isEditMode
+        ? await updateAttendance(editData.date, editData.shift, fd)
         : await createAttendance(fd);
 
-      if (res.error) {
-        toast.error(res.error);
+      if (result.error) {
+        toast.error(result.error);
       } else {
         toast.success("Presensi berhasil disimpan");
-        setIsDialogOpsOpen(false);
-        router.refresh();
+        onOpenChange(false);
       }
     });
   };
 
   return (
     <DialogForm
-      isOpen={isDialogOpsOpen}
-      onOpenChange={setIsDialogOpsOpen}
-      title={`${isEditMode ? "Edit" : "Tambah"} Presensi`}
-      description="Input data petugas sesuai shift."
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Presensi"
       isPending={isPending}
-      submitLabel="Simpan"
-      formId="attendance-form-id"
-      contentClassName="max-h-[90vh] overflow-y-auto sm:max-w-lg"
+      formId="form-attendance"
+      isEditMode={isEditMode}
     >
       <form
-        onSubmit={handleSubmit(onSubmit)}
-        id="attendance-form-id"
-        className="grid gap-4"
+        onSubmit={form.handleSubmit(handleSubmit)}
+        id="form-attendance"
+        className="max-h-[60vh] overflow-y-auto px-1"
       >
-        <div className="flex justify-between items-end">
-          <div className="flex gap-4">
-            <div className="grid gap-2 col-span-2">
-              <Label>Tanggal</Label>
-              <Input
-                type="date"
-                value={watchedDate}
-                onChange={(e) => setValue("date", e.target.value)}
-                disabled={isEditMode}
-                required
-              />
-            </div>
-            <div className="grid gap-2 col-span-2">
-              <Label>Shift</Label>
-              <Select
-                disabled={isEditMode}
-                value={watchedShift}
-                onValueChange={(v) =>
-                  setValue("shift", v as "Pagi" | "Sore" | "Malam")
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SHIFTS.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {/* <Button type="button">
-            <Plus />
-            Tambah Staff
-          </Button> */}
-        </div>
-
-        {roles.map((role) => {
-          const filteredStaff = staffList.filter(
-            (s) => s.roles?.role_name === role && s.is_active,
-          );
-          return (
-            <UserCombobox<IStaff, AttendanceFormValues>
-              key={role}
-              control={control}
-              name={`rolesInput.${role}`}
-              label={role}
-              items={filteredStaff}
-              itemValueKey="id"
-              itemDisplayKey="staff_name"
+        <FieldGroup className="flex flex-col gap-4">
+          <div className="flex gap-4 items-end">
+            {/* === DATE === */}
+            <Controller
+              name="date"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field
+                  data-invalid={fieldState.invalid}
+                  className="flex flex-col gap-1"
+                >
+                  <FieldLabel htmlFor={field.name}>Date</FieldLabel>
+                  <Input
+                    {...field}
+                    id={field.name}
+                    aria-invalid={fieldState.invalid}
+                    type="date"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isEditMode || isPending}
+                    required
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
             />
-          );
-        })}
+
+            {/* === SHIFT === */}
+            <Controller
+              name="shift"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field
+                  data-invalid={fieldState.invalid}
+                  className="flex flex-col gap-1"
+                >
+                  <FieldLabel htmlFor={field.name}>Shift</FieldLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={isEditMode || isPending}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SHIFTS.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+            {/* <Button type="button" onClick={() => setIsFormOpen(true)}>
+              <Plus />
+              Staff
+            </Button> */}
+          </div>
+
+          {/* === STAFF === */}
+          {roles.map((role, index) => {
+            const filteredStaff = staffList.filter(
+              (s) => s.roles?.role_name === role && s.is_active,
+            );
+            const comboboxItems = filteredStaff.map((staff) => ({
+              id: staff.id,
+              name: staff.staff_name,
+            }));
+
+            return (
+              <Controller
+                name="staff_id"
+                control={form.control}
+                key={role}
+                render={({ field, fieldState }) => {
+                  return (
+                    <Field
+                      data-invalid={fieldState.invalid}
+                      className="flex flex-col gap-1"
+                    >
+                      <FieldLabel htmlFor={`${field.name}.${index}`}>
+                        {role}
+                      </FieldLabel>
+                      <div className="flex gap-2">
+                        <UserCombobox
+                          id={`${field.name}.${index}`}
+                          value={field.value?.[index] || ""}
+                          onChange={(val) => {
+                            const newStaffId = [...(field.value || [])];
+                            newStaffId[index] = val || "";
+                            field.onChange(newStaffId);
+                          }}
+                          items={comboboxItems}
+                          ariaInvalid={fieldState.invalid}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => {
+                            const newStaffId = [...(field.value || [])];
+                            newStaffId[index] = "";
+                            field.onChange(newStaffId);
+                          }}
+                        >
+                          <X />
+                        </Button>
+                      </div>
+                    </Field>
+                  );
+                }}
+              />
+            );
+          })}
+        </FieldGroup>
       </form>
+
+      {/* <StaffForm
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        rolesData={initialRoles}
+      /> */}
     </DialogForm>
   );
 }

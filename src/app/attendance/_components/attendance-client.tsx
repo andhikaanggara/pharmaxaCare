@@ -8,8 +8,6 @@ import { SectionHeader } from "@/components/section/section-header";
 import { SectionTable, TableColumn } from "@/components/section/section-table";
 
 // Actions & Types
-import type { IRole } from "@/type/role";
-import type { IStaff } from "@/type/staff";
 import { AttendanceForm } from "./attendance-form";
 import {
   AttendanceFormData,
@@ -22,7 +20,6 @@ import { formatDateIndo } from "@/lib/utils/format";
 import { ConfirmDeleteDialog } from "@/components/feedback/confirm-delete-dialog";
 import { deleteAttendance } from "../actions";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import { exportAttendance } from "@/lib/utils/export-attendance";
 import { Field } from "@/components/ui/field";
 import {
@@ -34,6 +31,8 @@ import { DateRange } from "react-day-picker";
 import { format, setDate as setDay, subMonths } from "date-fns";
 import { id } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
+import { StaffSchema } from "@/app/master-staff/schema";
+import { RoleSchema } from "@/app/master-roles/schema";
 
 export default function AttendanceClient({
   initialAttendance,
@@ -41,13 +40,13 @@ export default function AttendanceClient({
   roles,
 }: {
   initialAttendance: AttendanceSchema[];
-  staffList: IStaff[];
-  roles: IRole[];
+  staffList: StaffSchema[];
+  roles: RoleSchema[];
 }) {
   const [isMounted, setIsMounted] = useState(false);
 
   // --- UI States ---
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [isAlertDeleteOpen, setIsAlertDeleteOpen] = useState(false);
 
   // --- Data States ---
@@ -131,23 +130,19 @@ export default function AttendanceClient({
 
   const handleOpenAdd = () => {
     setSelected(null);
-    setIsFormOpen(true);
+    setFormOpen(true);
   };
 
   const handleEdit = (row: GroupedAttendance) => {
+    const staffIds = roles.map((role) => row[`id_${role.role_name}`] || "");
+
     const formData = {
       date: row.date,
       shift: row.shift,
-      ...roles.reduce(
-        (acc, role) => {
-          acc[role.role_name] = row[`id_${role.role_name}`];
-          return acc;
-        },
-        {} as Record<string, string>,
-      ),
+      staff_id: staffIds,
     };
-    setSelected(formData);
-    setIsFormOpen(true);
+    setSelected(formData as any);
+    setFormOpen(true);
   };
 
   const handleDeleteTrigger = (att: GroupedAttendance) => {
@@ -282,11 +277,11 @@ export default function AttendanceClient({
 
       {/* Form Dialog */}
       <AttendanceForm
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        editData={selected}
         staffList={staffList}
         roles={roles.map((r) => r.role_name)}
-        isDialogOpsOpen={isFormOpen}
-        setIsDialogOpsOpen={setIsFormOpen}
-        editing={selected}
       />
 
       {/* Delete Alert */}
@@ -298,7 +293,7 @@ export default function AttendanceClient({
           selectedAttendance
             ? {
                 id: `${selectedAttendance.date}|${selectedAttendance.shift}`,
-                name: `${selectedAttendance.date} (Shift ${selectedAttendance.shift})`,
+                name: `${selectedAttendance.date} Shift ${selectedAttendance.shift}`,
               }
             : null
         }

@@ -43,7 +43,7 @@ export function DataTable<TData, TValue>({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-md border sticky top-0 z-10 ",
+        "overflow-x-auto overflow-hidden rounded-md border sticky top-0 z-10 ",
         hideOnMobile && "hidden md:block",
       )}
     >
@@ -64,7 +64,7 @@ export function DataTable<TData, TValue>({
                   </TableHead>
                 );
               })}
-              <TableHead className="text-center w-32 font-semibold">
+              <TableHead className="text-center w-32 font-semibold sticky right-0 bg-background z-20">
                 Aksi
               </TableHead>
             </TableRow>
@@ -83,7 +83,7 @@ export function DataTable<TData, TValue>({
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
-                <TableCell className="text-right">
+                <TableCell className="text-right sticky right-0 bg-background z-10">
                   <div className="flex justify-end gap-2">
                     <Button
                       type="button"

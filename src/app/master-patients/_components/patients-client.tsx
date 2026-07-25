@@ -93,7 +93,7 @@ export default function PatientsClient({
         />
       </section>
 
-      {/* Mobile View */}
+      {/* === MOBILE VIEW === */}
       <div className="grid grid-cols-1 gap-4 md:hidden overflow-auto max-h-full relative">
         {filteredPatients.map((items) => (
           <MobileDataTable
@@ -113,7 +113,7 @@ export default function PatientsClient({
         ))}
       </div>
 
-      {/* Desktop View */}
+      {/* === DESKTOP VIEW === */}
       <DataTable
         columns={columns}
         data={filteredPatients}

@@ -18,7 +18,7 @@ import { DataTable } from "@/components/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { MobileDataTable } from "@/components/mobile-data-table";
 
-const TABLE_COLUMNS: ColumnDef<StaffSchema>[] = [
+const columns: ColumnDef<StaffSchema>[] = [
   {
     header: "Staff Name",
     accessorKey: "staff_name",
@@ -111,7 +111,7 @@ export default function StaffClient({
       {/* === Desktop Data Table === */}
       <DataTable
         data={filteredStaff}
-        columns={TABLE_COLUMNS}
+        columns={columns}
         onEdit={handleOpenEdit}
         onDelete={handleDeleteTrigger}
         hideOnMobile
