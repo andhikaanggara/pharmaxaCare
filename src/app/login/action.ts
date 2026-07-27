@@ -3,6 +3,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
+const direct = "/attendance";
+
 export async function loginAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
@@ -16,7 +18,7 @@ export async function loginAction(formData: FormData) {
   if (error) {
     return { error: error.message };
   }
-  redirect("attendance");
+  redirect(direct);
 }
 
 // fuction handle guest login
@@ -30,5 +32,5 @@ export async function guestLoginAction() {
   if (error) {
     return { error: error.message };
   }
-  redirect("attendance");
+  redirect(direct);
 }
