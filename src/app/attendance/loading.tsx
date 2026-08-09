@@ -53,7 +53,7 @@ export default function Loading() {
       </div>
 
       <SectionTable
-        data={[]}
+        data={["loading"]}
         header={[]}
         onEdit={() => []}
         onDelete={() => []}

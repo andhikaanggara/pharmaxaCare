@@ -24,7 +24,7 @@ export default function Loading() {
         />
       </section>
 
-      <DataTable columns={[]} data={[]} onEdit={() => []} onDelete={() => []} />
+      <DataTable columns={[]} data={["loading"]} onEdit={() => []} onDelete={() => []} />
     </div>
   );
 }

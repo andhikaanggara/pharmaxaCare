@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Users } from "lucide-react";
 
 export default function Loading() {
-  const loadingData: any = [];
+  const loadingData: any = ["loading"];
   return (
     <div className="mx-auto flex w-full flex-col gap-6 p-4 md:p-6 h-[calc(100vh-64px)] overflow-hidden">
       <SectionHeader
@@ -45,7 +45,7 @@ export default function Loading() {
       {/* === DESKTOP VIEW === */}
       <DataTable
         columns={[]}
-        data={[]}
+        data={loadingData}
         onEdit={() => []}
         onDelete={() => []}
         hideOnMobile
