@@ -41,7 +41,7 @@ export default function Loading() {
 
       {/* === Desktop Data Table === */}
       <DataTable
-        data={[]}
+        data={loadingData}
         columns={[]}
         onEdit={() => []}
         onDelete={() => []}
