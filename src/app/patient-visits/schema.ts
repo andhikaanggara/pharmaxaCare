@@ -1,25 +1,21 @@
 import * as z from "zod";
 
 export const visitsSchema = z.object({
-  id: z.string().optional(),
-  date: z.string(),
-  shift: z.string(),
-  registation_id: z.string().optional(),
-  nurse_id: z.string().optional(),
-  doctor_id: z.string().optional(),
-  pharmacist_id: z.string().optional(),
-  patient_id: z.string(),
-  poly: z.string(),
-  recipe: z.string(),
-  payment: z.number(),
-  payment_methode: z.string(),
+  date: z.string().min(1, "date wajib diisi"),
+  shift: z.string().min(1, "shift wajib diisi"),
+  poly: z.string().min(1, "poly wajib diisi"),
+  pathway: z.string().min(1, "pathway wajib diisi"),
+  patient_id: z.string().min(1, "nama pasien wajib diisi"),
+  recipe: z.string().min(1, "resep wajib diisi"),
+  payment: z.string().min(1, "jumlah pembayaran wajib diisi"),
+  payment_methode: z.string().min(1, "metode pembayaran wajib diisi"),
+  staff_id: z.array(z.string().uuid()).optional(),
   treatments: z
     .array(
       z.object({
-        id: z.string(),
-        treatment_name: z.string(),
-        operation: z.string(),
-        assistant: z.string(),
+        treatment_id: z.string(),
+        operation_id: z.string(),
+        assistant_id: z.string(),
       }),
     )
     .optional(),
