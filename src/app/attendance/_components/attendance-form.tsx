@@ -98,11 +98,10 @@ export function AttendanceForm({
         ? await updateAttendance(editData.date, editData.shift, fd)
         : await createAttendance(fd);
 
-      if (result.error) {
+      if (!result.ok) {
         toast.error(result.error);
       } else {
         toast.success("Presensi berhasil disimpan");
-        onOpenChange(false);
       }
     });
   };
