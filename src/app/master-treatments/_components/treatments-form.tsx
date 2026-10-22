@@ -3,7 +3,6 @@
 import { useEffect, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 
 // ACTION
 import { createTreatment, updateTreatment } from "../action";
@@ -20,21 +19,24 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DialogForm } from "@/components/dialog-form";
+import { toast } from "sonner";
 
 type TreatmentFormProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editData: TreatmentSchema | null;
+  onSuccess?: (created: { id: string; name: string }) => void;
 };
 
 const defaultValues: TreatmentSchema = {
-  treatment_name: "",
+  name: "",
 };
 
 export function TreatmentsForm({
   open,
   onOpenChange,
   editData,
+  onSuccess,
 }: TreatmentFormProps) {
   const isEditMode = !!editData;
 
@@ -69,11 +71,16 @@ export function TreatmentsForm({
         }
 
         if (result?.ok) {
+          onSuccess?.(result.data);
           onOpenChange(false);
           form.reset();
+        } else if (result?.error) {
+          toast.error(result.error);
         }
       } catch (error) {
-        alert(error instanceof Error ? error.message : "Something went wrong");
+        toast.error(
+          error instanceof Error ? error.message : "Something went wrong",
+        );
       }
     });
   };
@@ -95,7 +102,7 @@ export function TreatmentsForm({
         <FieldGroup>
           {/* Treatment Name */}
           <Controller
-            name="treatment_name"
+            name="name"
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>

@@ -16,8 +16,8 @@ export default async function RolesPage() {
   // fetch data
   const { data, error } = await supabase
     .from("roles")
-    .select("id, role_name, is_active")
-    .order("role_name", { ascending: true });
+    .select("id, name, is_active")
+    .order("name", { ascending: true });
 
   if (error) throw new Error("Failed to insert Staff.");
 

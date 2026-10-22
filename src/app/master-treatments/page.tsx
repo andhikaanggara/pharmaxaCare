@@ -16,8 +16,8 @@ export default async function TreatmentsPage() {
 
   const { data, error } = await supabase
     .from("treatments")
-    .select("id, treatment_name")
-    .order("treatment_name", { ascending: true });
+    .select("id, name")
+    .order("name", { ascending: true });
   if (error) throw new Error("Failed to insert treatment.");
 
   return <TreatmentsClient initialData={data ?? []} />;

@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"; // Import komponen asli Shadcn UI
 import { Button } from "@/components/ui/button";
-import { Edit3, Trash2Icon } from "lucide-react";
+import { PencilIcon, Trash2Icon } from "lucide-react";
 
 // Definisikan tipe untuk konfigurasi kolom desktop
 export interface TableColumn<T> {
@@ -112,7 +112,7 @@ export function SectionTable<T extends { id: string | number }>({
                             className="cursor-pointer"
                             onClick={() => onEdit(item)}
                           >
-                            <Edit3 className="h-3 w-3 text-blue-600" />
+                            <PencilIcon className="h-3 w-3 text-blue-600" />
                           </Button>
                         )}
                         {onDelete && (

@@ -13,16 +13,20 @@ export async function createTreatment(formData: unknown) {
     const validate = treatmentSchema.safeParse(formData);
     if (!validate.success) throw new Error("Invalid input data.");
 
-    const { treatment_name } = validate.data;
+    const { name } = validate.data;
 
-    const { error } = await supabase.from("treatments").insert({
-      treatment_name: treatment_name.trim(),
-      is_demo: isGuest,
-    });
+    const { data, error } = await supabase
+      .from("treatments")
+      .insert({
+        name: name.trim(),
+        is_demo: isGuest,
+      })
+      .select("id, name")
+      .single();
+
     if (error) throw new Error(`Failed to create treatment: ${error.message}.`);
-
     revalidatePath(PATH);
-    return { ok: true };
+    return data;
   });
 }
 
@@ -33,18 +37,19 @@ export async function updateTreatment(formData: unknown) {
     const validate = treatmentSchema.safeParse(formData);
     if (!validate.success) throw new Error("Invalid input data.");
 
-    const { id, treatment_name } = validate.data;
+    const { id, name } = validate.data;
     if (!id) throw new Error("Invalid Treatment ID");
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("treatments")
-      .update({
-        treatment_name: treatment_name.trim(),
-      })
-      .eq("id", id);
+      .update({ name: name.trim() })
+      .eq("id", id)
+      .select("id, name")
+      .single();
+
     if (error) throw new Error(`Failed to update treatment: ${error.message}`);
     revalidatePath(PATH);
-    return { ok: true };
+    return data;
   });
 }
 

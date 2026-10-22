@@ -25,17 +25,14 @@ export default async function AttendancePage() {
 
   const [attendanceRes, staffRes, roleRes] = await Promise.all([
     supabase
-      .from("attendance")
-      .select("id, date, shift, staff_id, staff(staff_name)")
+      .from("attendances")
+      .select("id, date, shift, staff_id")
       .order("date", { ascending: false }),
     supabase
       .from("staff")
-      .select("id, staff_name, role_id, is_active, roles(role_name)")
-      .order("staff_name", { ascending: true }),
-    supabase
-      .from("roles")
-      .select("role_name")
-      .order("role_name", { ascending: true }),
+      .select("id, name, role_id, is_active, roles(name)")
+      .order("name", { ascending: true }),
+    supabase.from("roles").select("name").order("name", { ascending: false }),
   ]);
 
   // return message error
@@ -56,7 +53,7 @@ export default async function AttendancePage() {
         title="Manajement Petugas"
         message={staffRes.error.message}
         tableName="staff"
-        columns={["id", "staff_name", "role", "is_active"]}
+        columns={["id", "name", "role", "is_active"]}
       />
     );
   }
@@ -66,7 +63,7 @@ export default async function AttendancePage() {
       <DataErrorState
         title="Manajement Absensi"
         message={attendanceRes.error.message}
-        tableName="attendance"
+        tableName="attendances"
         columns={["id", "date", "shift", "staff_id"]}
       />
     );

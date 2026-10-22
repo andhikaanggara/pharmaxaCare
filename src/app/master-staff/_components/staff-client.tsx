@@ -21,11 +21,11 @@ import { MobileDataTable } from "@/components/mobile-data-table";
 const columns: ColumnDef<StaffSchema>[] = [
   {
     header: "Staff Name",
-    accessorKey: "staff_name",
+    accessorKey: "name",
   },
   {
     header: "Role",
-    accessorFn: (staff) => staff.roles?.role_name,
+    accessorFn: (staff) => staff.roles?.name,
   },
   {
     header: "Status",
@@ -52,7 +52,7 @@ export default function StaffClient({
     const lowerCaseQuery = searchQuery.toLowerCase();
     return initialStaff.filter(
       (staff) =>
-        staff.staff_name.toLowerCase().includes(lowerCaseQuery) ||
+        staff.name.toLowerCase().includes(lowerCaseQuery) ||
         staff.role_id.toLocaleLowerCase().includes(lowerCaseQuery),
     );
   }, [searchQuery, initialStaff]);
@@ -99,9 +99,9 @@ export default function StaffClient({
         {filteredStaff.map((items) => (
           <MobileDataTable
             key={items.id}
-            title={items.staff_name}
+            title={items.name}
             action={items.is_active ? "Active" : "Non-Active"}
-            description={items.roles?.role_name}
+            description={items.roles?.name}
             onEdit={() => handleOpenEdit(items)}
             onDelete={() => handleDeleteTrigger(items)}
           />
@@ -134,7 +134,7 @@ export default function StaffClient({
           selectedStaff && selectedStaff.id
             ? {
                 id: selectedStaff.id,
-                name: selectedStaff.staff_name,
+                name: selectedStaff.name,
               }
             : null
         }

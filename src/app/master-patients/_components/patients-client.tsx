@@ -20,7 +20,7 @@ import { MobileDataTable } from "@/components/mobile-data-table";
 const columns: ColumnDef<PatientSchema>[] = [
   {
     header: "Patient Name",
-    accessorKey: "patient_name",
+    accessorKey: "name",
   },
   { header: "MR Number", accessorKey: "mr_number" },
   { header: "Gender", accessorKey: "gender" },
@@ -50,10 +50,8 @@ export default function PatientsClient({
   const filteredPatients = useMemo(() => {
     const lowercasedQuery = searchQuery.toLowerCase();
     if (!lowercasedQuery) return initialPatients;
-    return initialPatients.filter(
-      (patient) =>
-        patient.patient_name.toLowerCase().includes(lowercasedQuery) ||
-        patient.mr_number.toLowerCase().includes(lowercasedQuery),
+    return initialPatients.filter((patient) =>
+      patient.name.toLowerCase().includes(lowercasedQuery),
     );
   }, [searchQuery, initialPatients]);
 
@@ -98,8 +96,8 @@ export default function PatientsClient({
         {filteredPatients.map((items) => (
           <MobileDataTable
             key={items.id}
-            title={items.patient_name}
-            action={items.mr_number}
+            title={items.name}
+            action={items.patient_group}
             onEdit={() => handleEdit(items)}
             onDelete={() => handleDelete(items)}
           >
@@ -137,7 +135,7 @@ export default function PatientsClient({
           selectedPatient && selectedPatient.id
             ? {
                 id: selectedPatient.id,
-                name: selectedPatient.patient_name,
+                name: selectedPatient.name,
               }
             : null
         }

@@ -30,7 +30,7 @@ type StaffFormProps = {
 
 const defaultValues: StaffSchema = {
   id: "",
-  staff_name: "",
+  name: "",
   role_id: "",
   is_active: true,
 };
@@ -81,7 +81,7 @@ export function StaffForm({
 
   const comboboxItems = rolesData.map((role) => ({
     id: String(role.id),
-    name: String(role.role_name),
+    name: String(role.name),
   }));
 
   return (
@@ -99,7 +99,7 @@ export function StaffForm({
       <form onSubmit={form.handleSubmit(handleSubmit)} id="form-staff">
         <FieldGroup>
           <Controller
-            name="staff_name"
+            name="name"
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>

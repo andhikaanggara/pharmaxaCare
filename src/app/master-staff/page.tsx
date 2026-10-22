@@ -22,27 +22,33 @@ export default async function StaffPage() {
 
   const staffQuery = supabase
     .from("staff")
-    .select("id, staff_name, role_id, is_active, roles(role_name)")
-    .order("roles(role_name)", { ascending: true })
-    .order("staff_name", { ascending: true });
+    .select("id, name, role_id, is_active, roles(name)")
+    .order("roles(name)", { ascending: true })
+    .order("name", { ascending: true });
 
   const [staffRes, roleRes] = await Promise.all([
     staffQuery,
     supabase
       .from("roles")
-      .select("role_name, id")
-      .order("role_name", { ascending: true }),
+      .select("name, id")
+      .order("name", { ascending: true }),
   ]);
 
   // return message error
-  if (staffRes.error) throw new Error("Failed to insert Staff.");
-  if (roleRes.error) throw new Error("Failed to insert Staff.");
+  if (staffRes.error)
+    throw new Error(`Gagal memuat Staff: ${staffRes.error.message}`);
+  if (roleRes.error)
+    throw new Error(`Gagal memuat Roles: ${roleRes.error.message}`);
 
-  type StaffWithRoles = QueryData<typeof staffQuery>;
-  const rawStaffData: StaffWithRoles = staffRes.data ?? [];
+  const rawStaffData = (staffRes.data ?? []).map((item) => ({
+    ...item,
+    roles: item.roles ? item.roles : undefined,
+  }));
 
-  const staff = z.array(staffSchema).parse(rawStaffData);
+  const parsedStaff = z.array(staffSchema).parse(rawStaffData);
   const roles = (roleRes.data ?? []) as RoleSchema[];
 
-  return <StaffClient initialStaff={staff} initialRoles={roles} />;
+  const staff = z.array(staffSchema).parse(rawStaffData);
+
+  return <StaffClient initialStaff={parsedStaff} initialRoles={roles} />;
 }

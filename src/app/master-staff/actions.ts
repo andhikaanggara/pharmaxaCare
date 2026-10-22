@@ -13,10 +13,10 @@ export async function createStaff(formData: unknown) {
     const validate = staffSchema.safeParse(formData);
     if (!validate.success) throw new Error("Invalid input data.");
 
-    const { staff_name, role_id, is_active } = validate.data;
+    const { name, role_id, is_active } = validate.data;
 
     const { error } = await supabase.from("staff").insert({
-      staff_name: staff_name.trim(),
+      name: name.trim(),
       role_id,
       is_active,
       is_demo: isGuest,
@@ -36,13 +36,13 @@ export async function updateStaff(formData: unknown) {
     const validate = staffSchema.safeParse(formData);
     if (!validate.success) throw new Error("Invalid input data.");
 
-    const { id, staff_name, role_id, is_active } = validate.data;
+    const { id, name, role_id, is_active } = validate.data;
     if (!id) throw new Error("Invalid Staff ID.");
 
     const { error } = await supabase
       .from("staff")
       .update({
-        staff_name: staff_name.trim(),
+        name: name.trim(),
         role_id,
         is_active,
       })

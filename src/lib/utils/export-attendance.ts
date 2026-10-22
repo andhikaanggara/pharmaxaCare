@@ -10,7 +10,7 @@ interface RawAttendance {
 
 interface Staff {
   id: string;
-  staff_name: string;
+  name: string;
 }
 
 export async function exportAttendance(
@@ -30,7 +30,7 @@ export async function exportAttendance(
       .sort((a, b) => b.date.localeCompare(a.date));
 
     // Validasi nama sheet (maksimal 31 karakter aturan Excel, bersihkan karakter aneh)
-    const sheetName = staff.staff_name
+    const sheetName = staff.name
       .substring(0, 30)
       .replace(/[*?:/[\]]/g, "");
     const worksheet = workbook.addWorksheet(sheetName);
@@ -38,7 +38,7 @@ export async function exportAttendance(
     // 3. Atur Styling & Judul di dalam Sheet Staf
     worksheet.mergeCells("A1:C1");
     const titleCell = worksheet.getCell("A1");
-    titleCell.value = `LAPORAN PRESENSI BULANAN - ${staff.staff_name.toUpperCase()}`;
+    titleCell.value = `LAPORAN PRESENSI BULANAN - ${staff.name.toUpperCase()}`;
     titleCell.font = { name: "Arial", size: 14, bold: true };
     titleCell.alignment = { vertical: "middle", horizontal: "center" };
     worksheet.getRow(1).height = 30;

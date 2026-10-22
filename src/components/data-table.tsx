@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "./ui/button";
-import { Edit3, Trash2Icon } from "lucide-react";
+import { PencilIcon, Trash2Icon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DataTableProps<TData, TValue> {
@@ -92,7 +92,7 @@ export function DataTable<TData, TValue>({
                       className="cursor-pointer"
                       onClick={() => onEdit(row.original)}
                     >
-                      <Edit3 className="h-3 w-3 text-blue-600" />
+                      <PencilIcon className="h-3 w-3 text-blue-600" />
                     </Button>
                     <Button
                       type="button"

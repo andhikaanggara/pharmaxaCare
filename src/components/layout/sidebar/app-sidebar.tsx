@@ -8,6 +8,7 @@ import {
   Home,
   LogOut,
   Clipboard,
+  PlusCircle,
   ChevronRight,
   Database,
   Wallet,
@@ -43,36 +44,25 @@ import {
 
 const data = {
   navSimple: [
-    // {
-    //   title: "Dashboard",
-    //   url: "/",
-    //   icon: Home,
-    // },
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: Home,
+    },
 
-    { title: "Patient Visits", url: "/patient-visits", icon: Clipboard },
+    {
+      title: "Visits",
+      url: "/visits",
+      icon: Clipboard,
+    },
 
     {
       title: "Attendance",
       url: "/attendance",
       icon: Calendar,
     },
-    // {
-    //   title: "Drug Defect",
-    //   url: "/drug-defect",
-    //   icon: Pill,
-    // },
   ],
   navDropDown: [
-    // {
-    //   title: "Finance",
-    //   url: "",
-    //   icon: Wallet,
-    //   isActive: true,
-    //   items: [
-    //     { title: "Receivables", url: "/finance-receivables" },
-    //     { title: "Payables", url: "/finance-payables" },
-    //   ],
-    // },
     {
       title: "Master",
       url: "",
@@ -83,6 +73,7 @@ const data = {
         { title: "Staff", url: "/master-staff" },
         { title: "Roles", url: "/master-roles" },
         { title: "Treatments", url: "/master-treatments" },
+        { title: "Diagnoses", url: "/master-diagnoses" },
       ],
     },
   ],

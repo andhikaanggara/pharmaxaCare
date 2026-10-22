@@ -37,8 +37,7 @@ interface PatientFormProps {
 }
 
 const defaultValues: PatientSchema = {
-  patient_name: "",
-  mr_number: "",
+  name: "",
   gender: "",
   birth_date: "",
   phone: "",
@@ -76,7 +75,7 @@ export function PatientForm({
         });
       } else {
         const newMrNumber = generateMRNumber(initialData);
-        form.reset({ ...defaultValues, mr_number: newMrNumber });
+        form.reset({ ...defaultValues });
       }
     }
   }, [editData, open, form]);
@@ -117,8 +116,7 @@ export function PatientForm({
       <form onSubmit={form.handleSubmit(handleSubmit)} id="form-patient">
         <FieldGroup>
           <Controller
-            name="patient_name"
-            control={form.control}
+            name="name"
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={field.name}>Patinent Name</FieldLabel>
@@ -131,20 +129,6 @@ export function PatientForm({
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Controller
-              name="mr_number"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>MR Number</FieldLabel>
-                  <Input {...field} readOnly disabled={isPending} />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-
             <Controller
               name="gender"
               control={form.control}

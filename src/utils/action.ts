@@ -3,7 +3,9 @@
 import { createClient } from "./supabase/server";
 import { SupabaseClient, User } from "@supabase/supabase-js";
 
-export type ActionState<T = any> = { error?: string; ok?: boolean; data?: T };
+export type ActionState<T> =
+  | { ok: true; data: T }
+  | { ok?: false; error: string };
 
 export async function getAuthContext(supabase: SupabaseClient) {
   const {

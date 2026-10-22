@@ -13,9 +13,9 @@ export async function createRole(formData: unknown) {
     const validate = roleSchema.safeParse(formData);
     if (!validate.success) throw new Error("Invalid input data.");
 
-    const { role_name, is_active } = validate.data;
+    const { name, is_active } = validate.data;
     const { error } = await supabase.from("roles").insert({
-      role_name: role_name.trim(),
+      name: name.trim(),
       is_active,
       is_demo: isGuest,
     });
@@ -32,13 +32,13 @@ export async function updateRole(formData: unknown) {
     const validate = roleSchema.safeParse(formData);
     if (!validate.success) throw new Error("Invalid input data.");
 
-    const { id, role_name, is_active } = validate.data;
+    const { id, name, is_active } = validate.data;
     if (!id) throw new Error("Invalid Role ID.");
 
     const { error } = await supabase
       .from("roles")
       .update({
-        role_name: role_name.trim(),
+        name: name.trim(),
         is_active,
       })
       .eq("id", id);

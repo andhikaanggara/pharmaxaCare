@@ -11,7 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Download, Edit3, Trash2 } from "lucide-react";
+import { CalendarIcon, Download, PencilIcon, Trash2 } from "lucide-react";
 
 export default function Loading() {
   return (
@@ -69,7 +69,7 @@ export default function Loading() {
             <div className="grid grid-cols-2 gap-2 text-sm"></div>
             <div className="flex gap-2 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => row}>
-                <Edit3 className="h-4 w-4 mr-2" /> Edit
+                <PencilIcon className="h-4 w-4 mr-2" /> Edit
               </Button>
               <Button
                 variant="destructive"

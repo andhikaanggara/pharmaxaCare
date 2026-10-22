@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
-const direct = "/attendance";
+const direct = "/dashboard";
 
 export async function loginAction(formData: FormData) {
   const email = formData.get("email") as string;

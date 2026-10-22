@@ -36,7 +36,7 @@ export async function createAttendance(formData: FormData) {
       throw new Error("Minimal satu staff harus dipilih.");
     }
 
-    const { error } = await supabase.from("attendance").insert(payload);
+    const { error } = await supabase.from("attendances").insert(payload);
     if (error)
       throw new Error(`Failed to create attendance: ${error.message}.`);
 
@@ -76,7 +76,7 @@ export async function updateAttendance(
 
     // Hapus Record Lama
     const { error: deleteError } = await supabase
-      .from("attendance")
+      .from("attendances")
       .delete()
       .eq("date", originalDate)
       .eq("shift", originalShift);
@@ -93,7 +93,7 @@ export async function updateAttendance(
       is_demo: isGuest,
     }));
 
-    const { error } = await supabase.from("attendance").insert(payload);
+    const { error } = await supabase.from("attendances").insert(payload);
     if (error) {
       throw new Error(`Failed to update attendance: ${error.message}`);
     }
@@ -111,7 +111,7 @@ export async function deleteAttendance(compositeId: string) {
     const [date, shift] = compositeId.split("|");
     if (!date || !shift) throw new Error("Missing date or shift parameters.");
     const { error } = await supabase
-      .from("attendance")
+      .from("attendances")
       .delete()
       .match({ date, shift });
     if (error) throw new Error(`Failed to delete attendance: ${error.message}`);

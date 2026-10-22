@@ -30,9 +30,9 @@ export default function Loading() {
         {loadingData.map((items: any) => (
           <MobileDataTable
             key={items.id}
-            title={items.staff_name}
+            title={items.name}
             action={items.is_active ? "Active" : "Non-Active"}
-            description={items.roles?.role_name}
+            description={items.roles?.name}
             onEdit={() => items}
             onDelete={() => items}
           />

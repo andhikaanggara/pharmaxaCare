@@ -20,8 +20,10 @@ export default async function PatientsPage() {
 
   const { data, error } = await supabase
     .from("patients")
-    .select("id, patient_name, mr_number, gender, birth_date, phone, address")
-    .order("patient_name", { ascending: true });
+    .select(
+      "id, name, gender, birth_date, phone, address, patient_group, is_new",
+    )
+    .order("name", { ascending: true });
   if (error) throw new Error("Failed to insert Patient.");
 
   const patients = (data ?? []) as PatientSchema[];

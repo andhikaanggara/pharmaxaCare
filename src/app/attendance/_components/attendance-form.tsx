@@ -121,7 +121,7 @@ export function AttendanceForm({
         id="form-attendance"
         className="max-h-[60vh] overflow-y-auto px-1"
       >
-        <FieldGroup className="flex flex-col gap-4">
+        <FieldGroup className="flex flex-col gap-4 mb-4">
           <div className="flex gap-4 items-end">
             {/* === DATE === */}
             <Controller
@@ -191,11 +191,11 @@ export function AttendanceForm({
           {/* === STAFF === */}
           {roles.map((role, index) => {
             const filteredStaff = staffList.filter(
-              (s) => s.roles?.role_name === role && s.is_active,
+              (s) => s.roles?.name === role && s.is_active,
             );
             const comboboxItems = filteredStaff.map((staff) => ({
               id: staff.id,
-              name: staff.staff_name,
+              name: staff.name,
             }));
 
             return (

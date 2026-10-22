@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 const TABLE_COLUMNS: ColumnDef<RoleSchema>[] = [
   {
     header: "Role Name",
-    accessorKey: "role_name",
+    accessorKey: "name",
   },
   {
     header: "Status",
@@ -44,7 +44,7 @@ export default function RolesClient({ initialRoles }: RoleClientProps) {
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return initialRoles;
-    return initialRoles.filter((r) => r.role_name.toLowerCase().includes(q));
+    return initialRoles.filter((r) => r.name.toLowerCase().includes(q));
   }, [searchQuery, initialRoles]);
 
   const handleAdd = () => {
@@ -102,7 +102,7 @@ export default function RolesClient({ initialRoles }: RoleClientProps) {
         entityName="Role"
         target={
           selectedRole && selectedRole.id
-            ? { id: selectedRole.id, name: selectedRole.role_name }
+            ? { id: selectedRole.id, name: selectedRole.name }
             : null
         }
         onDeleteAction={deleteRole}

@@ -13,12 +13,10 @@ export async function createPatient(formData: unknown) {
     const validate = patientSchema.safeParse(formData);
     if (!validate.success) throw new Error("Invalid input data.");
 
-    const { patient_name, mr_number, gender, birth_date, phone, address } =
-      validate.data;
+    const { name, gender, birth_date, phone, address } = validate.data;
 
     const { error } = await supabase.from("patients").insert({
-      patient_name: patient_name.trim(),
-      mr_number: mr_number.trim(),
+      name: name.trim(),
       gender: gender.trim(),
       birth_date: birth_date.trim(),
       phone: phone.trim(),
@@ -38,15 +36,13 @@ export async function updatePatient(formData: unknown) {
     const validate = patientSchema.safeParse(formData);
     if (!validate.success) throw new Error("Invalid input data.");
 
-    const { id, patient_name, mr_number, gender, birth_date, phone, address } =
-      validate.data;
+    const { id, name, gender, birth_date, phone, address } = validate.data;
     if (!id) throw new Error("Invalid Patient ID.");
 
     const { error } = await supabase
       .from("patients")
       .update({
-        patient_name: patient_name.trim(),
-        mr_number: mr_number.trim(),
+        name: name.trim(),
         gender: gender.trim(),
         birth_date: birth_date.trim(),
         phone: phone.trim(),

@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 
 const columns: ColumnDef<TreatmentSchema>[] = [
   {
-    accessorKey: "treatment_name",
+    accessorKey: "name",
     header: "Treatment Name",
   },
 ];
@@ -41,7 +41,7 @@ export default function TreatmentsClient({
     const lowercasedQuery = searchQuery.trim().toLocaleLowerCase();
     if (!lowercasedQuery) return initialData;
     return initialData.filter((r) =>
-      r.treatment_name.toLocaleLowerCase().includes(lowercasedQuery),
+      r.name.toLocaleLowerCase().includes(lowercasedQuery),
     );
   }, [searchQuery, initialData]);
 
@@ -103,7 +103,7 @@ export default function TreatmentsClient({
           selectedTreatment && selectedTreatment.id
             ? {
                 id: selectedTreatment.id,
-                name: selectedTreatment.treatment_name,
+                name: selectedTreatment.name,
               }
             : null
         }

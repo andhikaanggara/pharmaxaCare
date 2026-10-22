@@ -28,7 +28,7 @@ type RoleFormProps = {
 };
 
 const defaultValues: RoleSchema = {
-  role_name: "",
+  name: "",
   is_active: true,
 };
 
@@ -91,7 +91,7 @@ export function RoleForm({ open, onOpenChange, editData }: RoleFormProps) {
         <FieldGroup>
           {/* Role Name */}
           <Controller
-            name="role_name"
+            name="name"
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarIcon, Download, Edit3, Trash2 } from "lucide-react";
+import { CalendarIcon, Download, PencilIcon, Trash2 } from "lucide-react";
 
 // UI Components
 import { SectionHeader } from "@/components/section/section-header";
@@ -99,12 +99,12 @@ export default function AttendanceClient({
 
       // Jalur Logika 2: Ambil informasi staff dari map
       const staffInfo = staffMap.get(item.staff_id);
-      const roleName = staffInfo?.roles?.role_name;
+      const roleName = staffInfo?.roles?.name;
 
       // Jalur Logika 3: Jika staff punya role, masukkan ke dalam kelompok
       if (staffInfo && roleName) {
         // Masukkan nama staff ke kolom rolenya (Misal: Apoteker = "Andi")
-        groups[groupKey][roleName] = staffInfo.staff_name;
+        groups[groupKey][roleName] = staffInfo.name;
         // Masukkan ID staff untuk kebutuhan interaksi UI (Misal: id_Apoteker = 5)
         groups[groupKey][`id_${roleName}`] = item.staff_id;
       }
@@ -123,8 +123,8 @@ export default function AttendanceClient({
       accessor: (d) => d.shift,
     },
     ...roles.map((role) => ({
-      header: role.role_name,
-      accessor: (d: GroupedAttendance) => d[role.role_name] || "-",
+      header: role.name,
+      accessor: (d: GroupedAttendance) => d[role.name] || "-",
     })),
   ];
 
@@ -134,7 +134,7 @@ export default function AttendanceClient({
   };
 
   const handleEdit = (row: GroupedAttendance) => {
-    const staffIds = roles.map((role) => row[`id_${role.role_name}`] || "");
+    const staffIds = roles.map((role) => row[`id_${role.name}`] || "");
 
     const formData = {
       date: row.date,
@@ -242,13 +242,13 @@ export default function AttendanceClient({
               <Badge variant="secondary">{row.shift}</Badge>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              {roles.map(({ role_name }) => (
-                <div key={role_name} className="flex flex-col">
+              {roles.map(({ name }) => (
+                <div key={name} className="flex flex-col">
                   <span className="text-muted-foreground text-[10px] uppercase">
-                    {role_name}
+                    {name}
                   </span>
                   <span className="font-medium truncate">
-                    {row[role_name] || "-"}
+                    {row[name] || "-"}
                   </span>
                 </div>
               ))}
@@ -259,7 +259,7 @@ export default function AttendanceClient({
                 className="flex-1"
                 onClick={() => handleEdit(row)}
               >
-                <Edit3 className="h-4 w-4 mr-2" /> Edit
+                <PencilIcon className="h-4 w-4 mr-2" /> Edit
               </Button>
               <Button
                 variant="destructive"
@@ -281,7 +281,7 @@ export default function AttendanceClient({
         onOpenChange={setFormOpen}
         editData={selected}
         staffList={staffList}
-        roles={roles.map((r) => r.role_name)}
+        roles={roles.map((r) => r.name)}
       />
 
       {/* Delete Alert */}
