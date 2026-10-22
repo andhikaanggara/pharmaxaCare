@@ -33,15 +33,18 @@ import { id } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { StaffSchema } from "@/app/master-staff/schema";
 import { RoleSchema } from "@/app/master-roles/schema";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function AttendanceClient({
   initialAttendance,
   staffList,
   roles,
+  defaultRange,
 }: {
   initialAttendance: AttendanceSchema[];
   staffList: StaffSchema[];
   roles: RoleSchema[];
+  defaultRange: { from: Date; to: Date };
 }) {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -64,13 +67,33 @@ export default function AttendanceClient({
     [staffList],
   );
 
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   // range picker
-  const [date, setDate] = useState<DateRange | undefined>(() => {
-    const today = new Date();
-    const fromDate = setDay(subMonths(today, 1), 28);
-    const toDate = setDay(today, 27);
-    return { from: fromDate, to: toDate };
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: defaultRange.from,
+    to: defaultRange.to,
   });
+
+  // Handler saat user memilih tanggal di Calendar
+  const handleDateChange = (newDate: DateRange | undefined) => {
+    setDate(newDate);
+
+    if (newDate?.from) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("from", format(newDate.from, "yyyy-MM-dd"));
+
+      if (newDate.to) {
+        params.set("to", format(newDate.to, "yyyy-MM-dd"));
+      } else {
+        params.delete("to");
+      }
+
+      // Update URL tanpa reload halaman penuh (Server component otomatis re-fetch)
+      router.push(`?${params.toString()}`);
+    }
+  };
 
   // filter date data
   const filteredAttendanceByDate = useMemo(() => {
@@ -193,12 +216,13 @@ export default function AttendanceClient({
                   mode="range"
                   defaultMonth={date?.from}
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={handleDateChange} // <-- Gunakan handler yang baru
                   numberOfMonths={1}
                 />
               </PopoverContent>
             </Popover>
           </Field>
+
           <Button
             onClick={async () => {
               try {
@@ -208,7 +232,7 @@ export default function AttendanceClient({
                     : "Periode";
 
                 await exportAttendance(
-                  filteredAttendanceByDate,
+                  initialAttendance, // Data ini sudah ter-filter otomatis dari Supabase!
                   staffList,
                   rangeLabel,
                 );

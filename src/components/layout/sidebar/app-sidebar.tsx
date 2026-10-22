@@ -73,7 +73,7 @@ const data = {
         { title: "Staff", url: "/master-staff" },
         { title: "Roles", url: "/master-roles" },
         { title: "Treatments", url: "/master-treatments" },
-        { title: "Diagnoses", url: "/master-diagnoses" },
+        { title: "Diagnoses", url: "/master-diagnosis" },
       ],
     },
   ],
