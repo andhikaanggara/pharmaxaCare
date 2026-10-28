@@ -1,4 +1,4 @@
-# 🏥 Pharmaxa Care
+# 🏥 Pharmaxa KPI
 A high-performance, real-time Clinical & Pharmacy Management System engineered to eliminate administrative overhead, streamline patient logs, and eradicate manual spreadsheet tracking in healthcare facilities.
 > **Production Status:** Core modules—including **Staff Attendance Engine**, **Master Data Management (Staff, Patient, Role, & Treatment Configurations)**, and **Custom Cut-Off Excel Export Engine**—are fully operational and integrated with a relational Supabase database architecture.
 

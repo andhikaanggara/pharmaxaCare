@@ -41,11 +41,9 @@ export function PrescriptionPopoverCard({
     return (
       <button
         type="button"
-        onClick={onOpen}
-        title="Klik untuk mengisi resep"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4"
       >
-        Belum diisi
+        -
       </button>
     );
   }
@@ -83,30 +81,29 @@ export function PrescriptionPopoverCard({
                   })}{" "}
                   · {r.prescription_shift}
                 </p>
-                {canManage && (
-                  <div className="-mr-1 -mt-1 flex gap-0.5">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-6"
-                      aria-label="Edit resep ini"
-                      onClick={act(() => onRxAction!("edit-rx", visit, r))}
-                    >
-                      <PencilIcon className="size-3.5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-6 text-destructive"
-                      aria-label="Hapus resep ini"
-                      onClick={act(() => onRxAction!("delete-rx", visit, r))}
-                    >
-                      <Trash2Icon className="size-3.5" />
-                    </Button>
-                  </div>
-                )}
+
+                <div className="-mr-1 -mt-1 flex gap-0.5">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-6"
+                    aria-label="Edit resep ini"
+                    onClick={act(() => onRxAction!("edit-rx", visit, r))}
+                  >
+                    <PencilIcon className="size-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 text-destructive"
+                    aria-label="Hapus resep ini"
+                    onClick={act(() => onRxAction!("delete-rx", visit, r))}
+                  >
+                    <Trash2Icon className="size-3.5" />
+                  </Button>
+                </div>
               </div>
               <p>
                 {r.prescription_type}
@@ -115,6 +112,16 @@ export function PrescriptionPopoverCard({
             </div>
           ))}
         </div>
+        {canManage && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full"
+            onClick={onOpen}
+          >
+            Tambah Resep
+          </Button>
+        )}
       </PopoverContent>
     </Popover>
   );

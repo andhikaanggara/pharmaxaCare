@@ -25,8 +25,8 @@ const geistMono = Geist_Mono({
 
 // Metadata Configuration
 export const metadata: Metadata = {
-  title: "Pharmaxa Care",
-  description: "Clinic management application",
+  title: "Pharmaxa KPI",
+  description: "KPI management application",
 };
 
 export default async function RootLayout({

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { Search, Users } from "lucide-react";
+import { Search, User, Users } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 
@@ -16,13 +16,14 @@ import { PatientSchema } from "../schema";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table";
 import { MobileDataTable } from "@/components/mobile-data-table";
+import { PatientImportButton } from "./patient-import-button";
+import { Button } from "@/components/ui/button";
 
 const columns: ColumnDef<PatientSchema>[] = [
   {
     header: "Patient Name",
     accessorKey: "name",
   },
-  { header: "MR Number", accessorKey: "mr_number" },
   { header: "Gender", accessorKey: "gender" },
   {
     header: "Birth Date",
@@ -73,13 +74,24 @@ export default function PatientsClient({
 
   return (
     <div className="mx-auto flex w-full flex-col gap-6 p-4 md:p-6 h-[calc(100vh-64px)] overflow-hidden">
-      <SectionHeader
-        title="Master Patients"
-        description="Manage your patients"
-        icon={Users}
-        actionLabel="Create Patient"
-        onAction={handleCreate}
-      />
+      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <Users />
+          Visit Management
+        </h1>
+
+        <div className="flex gap-2 w-full md:w-auto">
+          <PatientImportButton />
+          <Button
+            onClick={handleCreate}
+            variant="default"
+            className="flex-1 md:flex-none gap-2"
+          >
+            <User className="h-4 w-4" />
+            Tambah Pasien
+          </Button>
+        </div>
+      </section>
 
       <section className="relative md:w-70">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

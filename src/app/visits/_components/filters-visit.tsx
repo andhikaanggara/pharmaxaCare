@@ -58,7 +58,6 @@ const toggle = (list: string[], v: string) =>
 
 const fmt = (d: Date) => format(d, "d MMM yyyy", { locale: idLocale });
 
-
 // ================
 // === function ===
 // ================
@@ -83,21 +82,21 @@ export function filterVisits(visits: VisitRow[], f: VisitFilters): VisitRow[] {
   });
 }
 
-export function filterOtcSales(
-  sales: OtcSaleRow[],
-  f: VisitFilters,
-): OtcSaleRow[] {
-  // sale_date berupa "yyyy-MM-dd", jadi dibandingkan sebagai teks agar bebas masalah zona waktu
-  const from = f.range?.from && format(f.range.from, "yyyy-MM-dd");
-  const to = f.range?.from && format(f.range.to ?? f.range.from, "yyyy-MM-dd");
+export const inDateRange = (date: string, f: VisitFilters) => {
+  if (!f.range?.from) return true;
+  const d = date.slice(0, 10);
+  return (
+    d >= format(f.range.from, "yyyy-MM-dd") &&
+    d <= format(f.range.to ?? f.range.from, "yyyy-MM-dd")
+  );
+};
 
-  return sales.filter((s) => {
-    const date = s.sale_date.slice(0, 10);
-    if (from && to && (date < from || date > to)) return false;
-    if (f.shift !== "all" && s.sale_shift !== f.shift) return false;
-    return true;
-  });
-}
+export const filterOtcSales = (sales: OtcSaleRow[], f: VisitFilters) =>
+  sales.filter(
+    (s) =>
+      inDateRange(s.sale_date, f) &&
+      (f.shift === "all" || s.sale_shift === f.shift),
+  );
 
 function CheckGroup({
   title,

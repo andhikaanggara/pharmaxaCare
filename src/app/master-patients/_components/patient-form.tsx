@@ -41,6 +41,7 @@ const defaultValues: PatientSchema = {
   gender: "",
   birth_date: "",
   phone: "",
+  patient_group: "",
   address: "",
 };
 
@@ -74,7 +75,6 @@ export function PatientForm({
           ...editData,
         });
       } else {
-        const newMrNumber = generateMRNumber(initialData);
         form.reset({ ...defaultValues });
       }
     }
@@ -117,6 +117,7 @@ export function PatientForm({
         <FieldGroup>
           <Controller
             name="name"
+            control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={field.name}>Patinent Name</FieldLabel>
@@ -128,7 +129,7 @@ export function PatientForm({
             )}
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Controller
               name="gender"
               control={form.control}
@@ -154,9 +155,7 @@ export function PatientForm({
                 </Field>
               )}
             />
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <Controller
               name="birth_date"
               control={form.control}
@@ -176,15 +175,35 @@ export function PatientForm({
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Staff Name</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>Phone</FieldLabel>
                   <PatternFormat
                     customInput={Input}
-                    mask=""
                     format="#### #### ####"
                     placeholder="08..."
                     value={field.value}
                     onValueChange={(v) => field.onChange(v.value)}
+                    onBlur={field.onBlur}
+                    getInputRef={field.ref}
                     disabled={isPending}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+
+            <Controller
+              name="patient_group"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>Kelompok</FieldLabel>
+                  <Input
+                    {...field}
+                    id={field.name}
+                    placeholder="Kelompok pasien"
+                    aria-invalid={fieldState.invalid}
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />

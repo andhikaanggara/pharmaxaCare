@@ -11,6 +11,7 @@ import type {
   TreatmentOption,
   VisitRow,
 } from "./schema";
+import { format, subDays } from "date-fns";
 
 const VISIT_SELECT = `
       id, department, guarantor, care, room, diagnoses_id,
@@ -147,4 +148,27 @@ export async function getOtcSales(): Promise<OtcSaleRow[]> {
 
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as OtcSaleRow[];
+}
+
+export type DutyEntry = { date: string; shift: string; role: string; name: string };
+
+// Absen 14 hari terakhir; filter tanggal dilakukan di laporan
+export async function getDutyRoster(days = 14): Promise<DutyEntry[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("attendances")
+    .select("date, shift, staff:staff!staff_id ( name, roles ( name ) )")
+    .gte("date", format(subDays(new Date(), days), "yyyy-MM-dd"));
+  if (error) throw new Error(error.message);
+
+  type Row = {
+    date: string;
+    shift: string;
+    staff: { name: string; roles: { name: string } | null } | null;
+  };
+  return ((data ?? []) as unknown as Row[]).flatMap((r) =>
+    r.staff?.roles
+      ? [{ date: r.date, shift: r.shift, role: r.staff.roles.name.toLowerCase(), name: r.staff.name }]
+      : [],
+  );
 }

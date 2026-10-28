@@ -73,7 +73,7 @@ const data = {
         { title: "Staff", url: "/master-staff" },
         { title: "Roles", url: "/master-roles" },
         { title: "Treatments", url: "/master-treatments" },
-        { title: "Diagnoses", url: "/master-diagnosis" },
+        { title: "Diagnoses", url: "/master-diagnoses" },
       ],
     },
   ],
@@ -113,10 +113,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-bold text-blue-300">
-                    Pharmaxa Care
+                    Pharmaxa KPI
                   </span>
                   <span className="truncate text-xs text-muted-foreground">
-                    Clinic Management App
+                    KPI Management App
                   </span>
                 </div>
               </Link>

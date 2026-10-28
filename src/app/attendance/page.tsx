@@ -59,8 +59,8 @@ export default async function AttendancePage({ searchParams }: Props) {
 
   const [attendanceRes, staffRes, roleRes] = await Promise.all([
     supabase
-      .from("attendance")
-      .select("id, date, shift, staff_id, staff(staff_name)")
+      .from("attendances")
+      .select("id, date, shift, staff_id, staff(name)")
       .gte("date", startDateParam)
       .lte("date", endDateParam)
       .order("date", { ascending: false }),

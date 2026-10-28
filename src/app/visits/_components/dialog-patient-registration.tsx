@@ -47,7 +47,6 @@ const getFormValues = (
   const p = visit?.patients;
   return {
     name: p?.name ?? "",
-    // nilai di luar pilihan (misalnya "Male") dikosongkan agar user memilih ulang
     gender: GENDERS.find((g) => g === p?.gender),
     birth_date: p?.birth_date ? parseISO(p.birth_date) : undefined,
     phone: p?.phone ?? "",

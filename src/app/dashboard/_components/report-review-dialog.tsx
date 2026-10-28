@@ -38,32 +38,32 @@ export function ReportReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col p-6">
         <DialogHeader>
           <DialogTitle>Review {title}</DialogTitle>
           <DialogDescription>
             Periksa dan ubah isi laporan sebelum dikirim.
           </DialogDescription>
         </DialogHeader>
+        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+          {warnings.length > 0 && (
+            <ul className="space-y-1 rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
+              {warnings.map((w) => (
+                <li key={w} className="flex items-start gap-2">
+                  <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
+                  {w}
+                </li>
+              ))}
+            </ul>
+          )}
 
-        {warnings.length > 0 && (
-          <ul className="space-y-1 rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
-            {warnings.map((w) => (
-              <li key={w} className="flex items-start gap-2">
-                <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
-                {w}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <Textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          rows={14}
-          className="font-mono text-sm"
-        />
-
+          <Textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={14}
+            className="font-mono text-sm"
+          />
+        </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Batal

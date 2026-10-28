@@ -4,20 +4,15 @@ import { useMemo, useState } from "react";
 import { format, subMonths } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
-  AlertCircle,
   BedDouble,
-  CalendarCheck,
   ChevronDown,
   Download,
   MessageCircle,
-  Pill,
   Receipt,
   ShoppingBag,
   Syringe,
-  UserPlus,
   Users,
   Wallet,
-  type LucideIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -57,7 +52,6 @@ import {
   VisitFilterBar,
   VisitFilters,
 } from "@/app/visits/_components/filters-visit";
-import { ChartContainer } from "@/components/ui/chart";
 import {
   buildCharts,
   buildKpis,
@@ -70,6 +64,7 @@ import { OtcSaleRow, ROOMS, VisitRow } from "@/app/visits/schema";
 import { rupiah } from "@/app/visits/utils";
 import { DashboardCharts } from "./dashboard-charts";
 import { ReportReviewDialog } from "./report-review-dialog";
+import { DutyEntry } from "@/app/visits/data";
 // state dan komponen filter yang sudah ada
 
 // ===== DATA DUMMY =====
@@ -88,17 +83,24 @@ export default function DashboardSummary({
   visits,
   otcSales,
   inpatients,
+  roster,
 }: {
   visits: VisitRow[];
   otcSales: OtcSaleRow[];
   inpatients: VisitRow[];
+  roster: DutyEntry[];
 }) {
   const [filters, setFilters] = useState<VisitFilters>(getDefaultFilters);
   const [role, setRole] = useState("all");
   const [month, setMonth] = useState(monthOptions[0].value);
   const isOwner = true; // TODO: ambil dari peran user yang login
 
-  const WA_ROLES: ReportRole[] = ["Pendaftaran", "Perawat", "Farmasi"];
+  const WA_ROLES: ReportRole[] = [
+    "Pendaftaran",
+    "Perawat",
+    "Farmasi",
+    "Keuangan",
+  ];
   const ROLE_MATCH: Record<string, (p: StaffPerf) => boolean> = {
     Dokter: (p) => p.doctor > 0,
     Perawat: (p) => p.nurse > 0,
@@ -124,8 +126,12 @@ export default function DashboardSummary({
     text: string;
     warnings: string[];
   } | null>(null);
+  
   const openReview = (r: ReportRole) =>
-    setReview({ role: r, ...buildReport(r, fv, fs, filters) });
+    setReview({
+      role: r,
+      ...buildReport(r, fv, fs, filters, [...visits, ...inpatients], roster),
+    });
 
   const KPIS = [
     {

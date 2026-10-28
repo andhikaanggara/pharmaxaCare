@@ -42,7 +42,7 @@ export default function LoginClient() {
     <Card className="w-full max-w-sm">
       <CardHeader>
         <CardTitle className="text-2xl font-bold">
-          Pharmaxa Care Login
+          Pharmaxa KPI Login
         </CardTitle>
         <CardDescription>
           Enter your clinical credentials to continue.

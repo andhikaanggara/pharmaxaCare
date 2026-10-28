@@ -1,4 +1,9 @@
-import { getInpatientRows, getOtcSales, getVisitRows } from "@/app/visits/data";
+import {
+  getDutyRoster,
+  getInpatientRows,
+  getOtcSales,
+  getVisitRows,
+} from "@/app/visits/data";
 import DashboardSummary from "./_components/dashboard-summary";
 
 export default async function DashboardPage() {
@@ -7,11 +12,13 @@ export default async function DashboardPage() {
     getOtcSales(),
     getInpatientRows(),
   ]);
+  const roster = await getDutyRoster();
   return (
     <DashboardSummary
       visits={visits}
       otcSales={otcSales}
       inpatients={inpatients}
+      roster={roster}
     />
   );
 }

@@ -138,6 +138,9 @@ export default function VisitsClient({
         setIsFollowUpForm(true);
         break;
       case "prescription":
+        setRxEdit(null);
+        setRxVisit(visit);
+        setIsRxForm(true);
         setRxPaymentOnly(false);
         break;
       case "payment":
