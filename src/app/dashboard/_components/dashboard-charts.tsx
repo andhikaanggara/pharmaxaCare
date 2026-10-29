@@ -26,9 +26,8 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import type { buildCharts } from "./dashboard-data";
-
-type Data = ReturnType<typeof buildCharts>;
+import type { buildMonthlyCharts } from "./dashboard-data";
+type Data = ReturnType<typeof buildMonthlyCharts>;
 
 const cfg = {
   total: { label: "Jumlah", color: "var(--chart-1)" },
@@ -120,9 +119,9 @@ export function DashboardCharts({ data }: { data: Data }) {
     <section className="grid gap-4 lg:grid-cols-3">
       <ChartCard
         title="Tren Kunjungan"
-        desc="Per hari"
+        desc={`Per hari · ${data.monthLabel}`}
         className="lg:col-span-2"
-        empty={data.perDay.length === 0}
+        empty={data.total === 0}
       >
         <ChartContainer config={cfg} className="h-64 w-full">
           <LineChart data={data.perDay}>
@@ -130,7 +129,7 @@ export function DashboardCharts({ data }: { data: Data }) {
             <XAxis dataKey="label" tickLine={false} axisLine={false} />
             <YAxis
               allowDecimals={false}
-              width={30}
+              width={34}
               tickLine={false}
               axisLine={false}
             />
@@ -146,9 +145,9 @@ export function DashboardCharts({ data }: { data: Data }) {
       </ChartCard>
 
       <ChartCard
-        title="Kunjungan per Shift"
-        desc="Pagi / Sore / Malam"
-        empty={data.shifts.every((s) => s.total === 0)}
+        title="Rata-rata Kunjungan per Shift"
+        desc={`Per hari · ${data.monthLabel}`}
+        empty={data.total === 0}
       >
         <ChartContainer config={cfg} className="h-64 w-full">
           <BarChart data={data.shifts}>
@@ -156,7 +155,7 @@ export function DashboardCharts({ data }: { data: Data }) {
             <XAxis dataKey="name" tickLine={false} axisLine={false} />
             <YAxis
               allowDecimals={false}
-              width={30}
+              width={34}
               tickLine={false}
               axisLine={false}
             />
@@ -168,8 +167,8 @@ export function DashboardCharts({ data }: { data: Data }) {
 
       <ChartCard
         title="Guarantor & Departemen"
-        desc="Mandiri vs BPJS, Umum vs Gigi"
-        empty={data.perDay.length === 0}
+        desc={data.monthLabel}
+        empty={data.total === 0}
       >
         <div className="grid grid-cols-2 gap-2">
           <Donut title="Guarantor" data={data.guarantor} />
@@ -179,7 +178,7 @@ export function DashboardCharts({ data }: { data: Data }) {
 
       <ChartCard
         title="Diagnosis Teratas"
-        desc="10 teratas"
+        desc={`10 teratas · ${data.monthLabel}`}
         empty={data.diagnoses.length === 0}
       >
         <TopBar data={data.diagnoses} />
@@ -187,7 +186,7 @@ export function DashboardCharts({ data }: { data: Data }) {
 
       <ChartCard
         title="Tindakan Teratas"
-        desc="10 teratas"
+        desc={`10 teratas · ${data.monthLabel}`}
         empty={data.treatments.length === 0}
       >
         <TopBar data={data.treatments} />

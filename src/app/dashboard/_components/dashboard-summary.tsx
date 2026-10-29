@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { format, subMonths } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   BedDouble,
@@ -53,54 +52,60 @@ import {
   VisitFilters,
 } from "@/app/visits/_components/filters-visit";
 import {
-  buildCharts,
   buildKpis,
   buildReport,
   ReportRole,
   StaffPerf,
-  staffPerformance,
 } from "./dashboard-data";
 import { OtcSaleRow, ROOMS, VisitRow } from "@/app/visits/schema";
 import { rupiah } from "@/app/visits/utils";
 import { DashboardCharts } from "./dashboard-charts";
 import { ReportReviewDialog } from "./report-review-dialog";
 import { DutyEntry } from "@/app/visits/data";
+import { getSingleReportDate } from "./report-wa";
+import { CashSummary } from "@/lib/cash-shared";
+import { getCashSummary } from "@/lib/cash";
+import { useEffect, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  monthRange,
+  payrollPeriod,
+  periodLabel,
+  periodOptions,
+  todayYmd,
+} from "@/lib/periods";
+import { buildMonthlyCharts } from "./dashboard-data";
+import type { MonthlyChartData } from "../data";
+import { format } from "date-fns";
 // state dan komponen filter yang sudah ada
 
 // ===== DATA DUMMY =====
 
 const ROLES = ["Dokter", "Perawat", "Farmasi/Kasir", "Pendaftaran"];
 
-const monthOptions = Array.from({ length: 6 }, (_, i) => {
-  const d = subMonths(new Date(), i);
-  return {
-    value: format(d, "yyyy-MM"),
-    label: format(d, "MMMM yyyy", { locale: idLocale }),
-  };
-});
-
 export default function DashboardSummary({
   visits,
   otcSales,
   inpatients,
   roster,
+  monthly,
+  staffPerf,
+  periodStart,
 }: {
   visits: VisitRow[];
   otcSales: OtcSaleRow[];
   inpatients: VisitRow[];
   roster: DutyEntry[];
+  monthly: MonthlyChartData;
+  staffPerf: StaffPerf[];
+  periodStart: string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
+  const [pending, startTransition] = useTransition();
   const [filters, setFilters] = useState<VisitFilters>(getDefaultFilters);
   const [role, setRole] = useState("all");
-  const [month, setMonth] = useState(monthOptions[0].value);
-  const isOwner = true; // TODO: ambil dari peran user yang login
-
-  const WA_ROLES: ReportRole[] = [
-    "Pendaftaran",
-    "Perawat",
-    "Farmasi",
-    "Keuangan",
-  ];
   const ROLE_MATCH: Record<string, (p: StaffPerf) => boolean> = {
     Dokter: (p) => p.doctor > 0,
     Perawat: (p) => p.nurse > 0,
@@ -108,6 +113,41 @@ export default function DashboardSummary({
     Pendaftaran: (p) => p.registered > 0,
   };
 
+  const setParam = (key: string, value: string) => {
+    const q = new URLSearchParams(sp.toString());
+    q.set(key, value);
+    startTransition(() =>
+      router.replace(`${pathname}?${q}`, { scroll: false }),
+    );
+  };
+
+  // grafik mengikuti bulan dari hari yang dipilih di filter tanggal
+  const selectedMonth = monthRange(
+    filters.range?.from ? format(filters.range.from, "yyyy-MM-dd") : todayYmd(),
+  ).key;
+  useEffect(() => {
+    if (selectedMonth !== monthly.month) setParam("month", selectedMonth);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonth, monthly.month]);
+
+  const charts = useMemo(() => buildMonthlyCharts(monthly), [monthly]);
+  const rows = role === "all" ? staffPerf : staffPerf.filter(ROLE_MATCH[role]);
+
+  const periods = periodOptions(todayYmd());
+  const periodText = periodLabel(payrollPeriod(periodStart));
+  const periodList = periods.some((p) => p.value === periodStart)
+    ? periods
+    : [{ value: periodStart, label: periodText }, ...periods];
+
+  const exportMonthly = () => console.log("export bulanan", periodText, rows);
+  const isOwner = true; // TODO: ambil dari peran user yang login
+  const WA_ROLES: ReportRole[] = [
+    "Pendaftaran",
+    "Perawat",
+    "Farmasi",
+    "Keuangan",
+    "Makan",
+  ];
   const fv = useMemo(() => filterVisits(visits, filters), [visits, filters]);
   const fs = useMemo(
     () => filterOtcSales(otcSales, filters),
@@ -117,22 +157,42 @@ export default function DashboardSummary({
     () => buildKpis(fv, fs, inpatients.length),
     [fv, fs, inpatients],
   );
-  const charts = useMemo(() => buildCharts(fv), [fv]);
-  const staffRows = useMemo(() => staffPerformance(fv, fs), [fv, fs]);
-  const rows = role === "all" ? staffRows : staffRows.filter(ROLE_MATCH[role]);
-
   const [review, setReview] = useState<{
     role: ReportRole;
     text: string;
     warnings: string[];
   } | null>(null);
-  
-  const openReview = (r: ReportRole) =>
-    setReview({
-      role: r,
-      ...buildReport(r, fv, fs, filters, [...visits, ...inpatients], roster),
-    });
+  const openReview = async (reportRole: ReportRole) => {
+    // Saldo kas hanya untuk laporan Keuangan, dan hanya bila filter tepat satu tanggal
+    const date = getSingleReportDate(filters);
+    let cash: CashSummary | null = null;
+    let cashError: string | null = null;
 
+    if (reportRole === "Keuangan" && date) {
+      try {
+        cash = await getCashSummary(date, filters.shift);
+      } catch {
+        cashError = "Saldo kas gagal dimuat, isi Saldo Awal sampai Sisa manual";
+      }
+    }
+
+    const report = buildReport(
+      reportRole,
+      fv,
+      fs,
+      filters,
+      [...visits, ...inpatients], // pool, tetap seperti sebelumnya
+      roster,
+      inpatients, // BARU: untuk laporan Makan
+      cash, // BARU: untuk laporan Keuangan
+    );
+
+    setReview({
+      role: reportRole,
+      text: report.text,
+      warnings: cashError ? [cashError, ...report.warnings] : report.warnings,
+    });
+  };
   const KPIS = [
     {
       label: "Total Kunjungan",
@@ -149,7 +209,7 @@ export default function DashboardSummary({
     {
       label: "Pendapatan Terbayar",
       value: rupiah.format(k.paid),
-      note: `${k.payCount} pembayaran`,
+      note: `${k.payCount} pembayaran · tanpa BPJS`,
       icon: Wallet,
     },
     {
@@ -173,8 +233,6 @@ export default function DashboardSummary({
         : "-",
     },
   ];
-
-  const exportMonthly = () => console.log("export bulanan", month);
 
   return (
     <main className="mx-auto flex w-full flex-col gap-6 p-4 md:p-6">
@@ -232,7 +290,7 @@ export default function DashboardSummary({
           <div>
             <CardTitle>Performa Staf</CardTitle>
             <CardDescription>
-              Bandingkan hanya dengan peran yang sama
+              Periode {periodText} · bandingkan hanya dengan peran yang sama
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -252,14 +310,17 @@ export default function DashboardSummary({
 
             {isOwner && (
               <>
-                <Select value={month} onValueChange={setMonth}>
-                  <SelectTrigger className="w-40">
+                <Select
+                  value={periodStart}
+                  onValueChange={(v) => setParam("period", v)}
+                >
+                  <SelectTrigger className="w-56">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {monthOptions.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>
-                        {m.label}
+                    {periodList.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>
+                        {p.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

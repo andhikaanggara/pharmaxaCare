@@ -152,7 +152,6 @@ export async function getOtcSales(): Promise<OtcSaleRow[]> {
 
 export type DutyEntry = { date: string; shift: string; role: string; name: string };
 
-// Absen 14 hari terakhir; filter tanggal dilakukan di laporan
 export async function getDutyRoster(days = 14): Promise<DutyEntry[]> {
   const supabase = await createClient();
   const { data, error } = await supabase

@@ -11,35 +11,19 @@ import {
   type VisitFilters,
 } from "@/app/visits/_components/filters-visit";
 import type { DutyEntry } from "@/app/visits/data";
+import { CashSummary } from "@/lib/cash-shared";
 
-// ===== KONFIGURASI: ubah di sini, bukan di logika =====
 const CLINIC_NAME = "Klinik Pratama Rahayu Medika";
 
-type Stats = Record<
-  "total" | "umum" | "bpjs" | "rujuk" | "ranap" | "hv" | "suket",
-  number
->;
+type Shift = (typeof SHIFTS)[number];
 
-const STAT_LABELS: Record<keyof Stats, string> = {
-  total: "Total Pasien",
-  umum: "Rajal Umum",
-  bpjs: "Rajal BPJS",
-  rujuk: "Rujukan",
-  ranap: "Rawat Inap",
-  hv: "Home Visit",
-  suket: "Suket Sehat",
-};
+const SHIFT_LAPORAN: readonly Shift[] = ["Pagi", "Sore"];
 
-// baris statistik yang tampil di tiap bagian
-const STAT_FIELDS: Record<"umum" | "shift" | "gigi", (keyof Stats)[]> = {
-  umum: ["total", "umum", "bpjs", "rujuk", "ranap", "hv", "suket"],
-  shift: ["total", "umum", "bpjs", "rujuk", "suket"],
-  gigi: ["total", "umum", "bpjs", "rujuk"],
-};
+const ROLE_FARMASI = "farmasi";
+const ROLE_APOTEKER = "apoteker";
 
-// kerangka petugas hari berikutnya (diisi manual di kotak review)
-const NEXT_SCHEDULE: Record<(typeof SHIFTS)[number], string[]> = {
-  Pagi: ["Dokter Umum", "Pendaftaran", "Perawat Umum", "Farmasi"],
+const NEXT_DAY_STAFF_TEMPLATE: Record<Shift, string[]> = {
+  Pagi: ["Dokter Umum", "Pendaftaran", "Perawat Umum", "Farmasi", "Apoteker"],
   Sore: [
     "Dokter Umum",
     "Dokter Gigi",
@@ -47,244 +31,338 @@ const NEXT_SCHEDULE: Record<(typeof SHIFTS)[number], string[]> = {
     "Perawat Umum",
     "Perawat Gigi",
     "Farmasi",
+    "Apoteker",
   ],
   Malam: ["Perawat Umum"],
 };
 
-// ===== HELPER TEKS (bisa dipakai laporan lain) =====
-export const kv = (label: string, value: string | number) =>
-  `${label} : ${value}`;
-export const block = (title: string, lines: string[]) => [title, ...lines, ""];
-export const numbered = (items: string[]) =>
-  items.length ? items.map((s, i) => `${i + 1}. ${s}`) : ["-"];
-export const tally = (xs: (string | undefined)[]) => {
-  const m = new Map<string, number>();
-  for (const x of xs) if (x) m.set(x, (m.get(x) ?? 0) + 1);
-  return [...m]
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, n]) => `${name} : ${n}`);
-};
-const uniq = (xs: (string | null | undefined)[]) => [
-  ...new Set(xs.filter((x): x is string => !!x)),
-];
-const greeting = (h = new Date().getHours()) =>
-  h >= 18 || h < 5 ? "malam" : h < 11 ? "pagi" : h < 15 ? "siang" : "sore";
+type StatKey =
+  | "total"
+  | "mandiri"
+  | "bpjs"
+  | "rujuk"
+  | "ranap"
+  | "hv"
+  | "suket";
 
-const longDate = (d: Date) =>
-  format(d, "EEEE, d MMMM yyyy", { locale: idLocale });
+const dihitungSebagaiRajal = (visit: VisitRow) =>
+  visit.care !== "Rujuk" && visit.care !== "Surat Sehat";
 
-const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
-const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
-const shiftsOf = (f: VisitFilters): readonly string[] =>
-  f.shift === "all" ? SHIFTS : [f.shift];
-const merge = (pool: VisitRow[], visits: VisitRow[]) => [
-  ...new Map([...pool, ...visits].map((v) => [v.id, v])).values(),
-];
-const dayLabel = (f: VisitFilters) => {
-  const { from, to } = f.range ?? {};
-  return from && to && !isSameDay(from, to)
-    ? `${longDate(from)} - ${longDate(to)}`
-    : longDate(to ?? from ?? new Date());
-};
+const STATISTIK: Record<
+  StatKey,
+  { label: string; dihitung: (visit: VisitRow) => boolean }
+> = {
+  total: { label: "Total Pasien", dihitung: () => true },
 
-const rosterNames = (
-  roster: DutyEntry[],
-  f: VisitFilters,
-  shift: string,
-  roles: string[],
-) =>
-  uniq(
-    roster
-      .filter(
-        (r) =>
-          r.shift === shift && roles.includes(r.role) && inDateRange(r.date, f),
-      )
-      .map((r) => r.name),
-  ).join(", ");
+  mandiri: {
+    label: "Rajal Mandiri",
+    dihitung: (visit) =>
+      dihitungSebagaiRajal(visit) && visit.guarantor === "Mandiri",
+  },
+  bpjs: {
+    label: "Rajal BPJS",
+    dihitung: (visit) =>
+      dihitungSebagaiRajal(visit) && visit.guarantor === "BPJS",
+  },
 
-// ===== PERHITUNGAN =====
-type Ctx = {
-  visits: VisitRow[];
-  all: VisitRow[];
-  sales: OtcSaleRow[];
-  f: VisitFilters;
-  roster?: DutyEntry[];
+  rujuk: { label: "Rujukan", dihitung: (visit) => visit.care === "Rujuk" },
+  ranap: {
+    label: "Rawat Inap",
+    dihitung: (visit) => visit.care === "Rawat Inap",
+  },
+  hv: { label: "Home Visit", dihitung: (visit) => visit.care === "Home Visit" },
+  suket: {
+    label: "Suket Sehat",
+    dihitung: (visit) => visit.care === "Surat Sehat",
+  },
 };
 
-type ShiftCtx = Ctx & { shift: string; vs: VisitRow[] };
-
-function countStats(vs: VisitRow[]): Stats {
-  const out = vs.filter((v) => !isRoomCare(v.care)); // ranap & home visit dihitung terpisah
-  const rajal = out.filter(
-    (v) => v.care !== "Rujuk" && v.care !== "Surat Sehat",
-  );
-  const care = (c: string) => vs.filter((v) => v.care === c).length;
-  return {
-    total: out.length,
-    umum: rajal.filter((v) => v.guarantor === "Mandiri").length,
-    bpjs: rajal.filter((v) => v.guarantor === "BPJS").length,
-    rujuk: care("Rujuk"),
-    suket: care("Surat Sehat"),
-    ranap: care("Rawat Inap"),
-    hv: care("Home Visit"),
-  };
-}
-
-const statLines = (s: Stats, fields: (keyof Stats)[]) =>
-  fields.map((k) => kv(STAT_LABELS[k], s[k]));
-
-const treatmentRows = (c: Ctx, dept: string, shift?: string) =>
-  c.all
-    .filter((v) => v.department === dept)
-    .flatMap((v) => (v.visit_treatments ?? []).map((t) => ({ v, t })))
-    .filter(
-      ({ t }) =>
-        inDateRange(t.treatment_date, c.f) &&
-        (c.f.shift === "all" || t.treatment_shift === c.f.shift) &&
-        (!shift || t.treatment_shift === shift),
-    );
-
-const treatmentNames = (c: Ctx, dept: string, shift?: string) =>
-  treatmentRows(c, dept, shift).map(({ t }) => t.treatments?.name);
-
-const byDept = (
-  c: ShiftCtx,
-  dept: string,
-  pick: (v: VisitRow) => string | undefined,
-) => uniq(c.vs.filter((v) => v.department === dept).map(pick)).join(", ");
-
-// farmasi = apoteker resep + kasir + petugas penjualan apotek
-const pharmacy = (c: ShiftCtx) =>
-  uniq([
-    ...c.all
-      .flatMap((v) => v.visit_prescription ?? [])
-      .filter(
-        (r) =>
-          r.prescription_shift === c.shift &&
-          inDateRange(r.prescription_date, c.f),
-      )
-      .map((r) => r.pharmacist?.name),
-    ...c.all
-      .flatMap((v) => v.visit_payment ?? [])
-      .filter(
-        (p) => p.payment_shift === c.shift && inDateRange(p.payment_date, c.f),
-      )
-      .map((p) => p.cashier?.name),
-    ...c.sales
-      .filter((s) => s.sale_shift === c.shift)
-      .map((s) => s.staff?.name),
-  ]).join(", ");
-
-// satu baris petugas = satu entri; required = tetap tampil "-" bila kosong
-const STAFF_LINES: {
-  label: string;
-  roles: string[];
-  names: (c: ShiftCtx) => string;
-  required?: boolean;
-}[] = [
-  {
-    label: "Dokter Umum",
-    roles: ["dokter umum"],
-    names: (c) => byDept(c, "Umum", (v) => v.doctor?.name),
-  },
-  {
-    label: "Dokter Gigi",
-    roles: ["dokter gigi"],
-    names: (c) => byDept(c, "Gigi", (v) => v.doctor?.name),
-  },
-  {
-    label: "Pendaftaran",
-    roles: ["pendaftaran"],
-    names: (c) => uniq(c.vs.map((v) => v.registration_staff?.name)).join(", "),
-  },
-  {
-    label: "Perawat Umum",
-    roles: ["perawat umum"],
-    names: (c) => byDept(c, "Umum", (v) => v.nurse?.name),
-    required: true,
-  },
-  {
-    label: "Perawat Gigi",
-    roles: ["perawat gigi"],
-    names: (c) => byDept(c, "Gigi", (v) => v.nurse?.name),
-  },
-  { label: "Farmasi", roles: ["farmasi", "apoteker"], names: pharmacy },
+const KOLOM_POLI_UMUM: StatKey[] = [
+  "total",
+  "mandiri",
+  "bpjs",
+  "rujuk",
+  "ranap",
+  "hv",
+  "suket",
 ];
+const KOLOM_POLI_GIGI: StatKey[] = ["total", "mandiri", "bpjs", "rujuk"];
 
-// ===== PERAKITAN LAPORAN =====
-export function renderPendaftaran(
-  visits: VisitRow[],
-  sales: OtcSaleRow[],
-  f: VisitFilters,
-  pool: VisitRow[] = [],
-  roster: DutyEntry[] = [],
-) {
-  const all = merge(pool, visits);
-  const c: Ctx = { visits, all, sales, f, roster };
-  const shifts = shiftsOf(f);
-  const dept = (d: string) => visits.filter((v) => v.department === d);
-
-  const poliUmum = block(
-    "POLI UMUM",
-    statLines(countStats(dept("Umum")), STAT_FIELDS.umum),
-  );
-
-  const umumPerShift = shifts.flatMap((s) => {
-    const vs = dept("Umum").filter((v) => v.admission_shift === s);
-    const tx = treatmentNames(c, "Umum", s);
-    if (!vs.length && !tx.length) return [];
-    return block(`SHIFT ${s.toUpperCase()}`, [
-      ...statLines(countStats(vs), STAT_FIELDS.shift),
-      "Tindakan :",
-      ...numbered(tally(tx)),
-    ]);
-  });
-
-  const poliGigi = block("POLI GIGI", [
-    ...statLines(countStats(dept("Gigi")), STAT_FIELDS.gigi),
-    "Tindakan :",
-    ...numbered(tally(treatmentNames(c, "Gigi"))),
-  ]);
-
-  const petugas = shifts.flatMap((s) => {
-    const sc: ShiftCtx = {
-      ...c,
-      shift: s,
-      vs: visits.filter((v) => v.admission_shift === s),
-    };
-    return block(
-      `SHIFT ${s.toUpperCase()}`,
-      STAFF_LINES.flatMap(({ label, roles, names, required }) => {
-        const n = rosterNames(roster, f, s, roles) || names(sc);
-        return n || required ? [kv(label, n || "-")] : [];
-      }),
-    );
-  });
-
-  const schedule = Object.entries(NEXT_SCHEDULE).flatMap(([s, roles]) =>
-    block(
-      `SHIFT ${s.toUpperCase()}`,
-      roles.map((r) => `${r} :`),
+const statLines = (visits: VisitRow[], keys: StatKey[]) =>
+  keys.map((key) =>
+    formatKeyValue(
+      STATISTIK[key].label,
+      visits.filter(STATISTIK[key].dihitung).length,
     ),
   );
 
-  const day = f.range?.to ?? f.range?.from ?? new Date();
+export const formatKeyValue = (label: string, value: string | number) =>
+  `${label} : ${value}`;
+
+export const titledSection = (title: string, lines: string[]) => [
+  title,
+  ...lines,
+  "",
+];
+
+export const numberedList = (items: string[]) =>
+  items.length ? items.map((item, index) => `${index + 1}. ${item}`) : ["-"];
+
+export const tallyLines = (names: (string | undefined)[]) => {
+  const countByName = new Map<string, number>();
+  for (const name of names) {
+    if (name) countByName.set(name, (countByName.get(name) ?? 0) + 1);
+  }
+  return [...countByName]
+    .sort(([, countA], [, countB]) => countB - countA)
+    .map(([name, count]) => `${name} : ${count}`);
+};
+
+/** @deprecated Alias nama lama, hapus setelah semua import diperbarui. */
+export const kv = formatKeyValue;
+/** @deprecated */
+export const block = titledSection;
+/** @deprecated */
+export const numbered = numberedList;
+/** @deprecated */
+export const tally = tallyLines;
+
+const uniqueValues = (values: (string | null | undefined)[]) => [
+  ...new Set(values.filter((value): value is string => !!value)),
+];
+
+const getGreeting = (hour = new Date().getHours()) => {
+  if (hour >= 18 || hour < 5) return "malam";
+  if (hour < 11) return "pagi";
+  if (hour < 15) return "siang";
+  return "sore";
+};
+
+const formatLongDate = (date: Date) =>
+  format(date, "EEEE, d MMMM yyyy", { locale: idLocale });
+
+const formatRupiah = (amount: number) => `Rp${amount.toLocaleString("id-ID")}`;
+
+const sumNumbers = (numbers: number[]) =>
+  numbers.reduce((total, value) => total + value, 0);
+
+const formatDateRangeLabel = (filters: VisitFilters) => {
+  const { from, to } = filters.range ?? {};
+  if (from && to && !isSameDay(from, to)) {
+    return `${formatLongDate(from)} - ${formatLongDate(to)}`;
+  }
+  return formatLongDate(to ?? from ?? new Date());
+};
+
+export const getSingleReportDate = (filters: VisitFilters) => {
+  const { from, to } = filters.range ?? {};
+  if (!from) return null;
+  if (to && !isSameDay(from, to)) return null;
+  return format(from, "yyyy-MM-dd");
+};
+
+const mergeVisits = (poolVisits: VisitRow[], currentVisits: VisitRow[]) => [
+  ...new Map(
+    [...poolVisits, ...currentVisits].map((visit) => [visit.id, visit]),
+  ).values(),
+];
+
+const getDutyRosterNames = (
+  roster: DutyEntry[],
+  filters: VisitFilters,
+  shift: string,
+  roles: string[],
+) =>
+  uniqueValues(
+    roster
+      .filter(
+        (entry) =>
+          entry.shift === shift &&
+          roles.includes(entry.role) &&
+          inDateRange(entry.date, filters),
+      )
+      .map((entry) => entry.name),
+  ).join(", ");
+
+const findTreatmentRows = (
+  allVisits: VisitRow[],
+  filters: VisitFilters,
+  department: string,
+  shift?: string,
+) =>
+  allVisits
+    .filter((visit) => visit.department === department)
+    .flatMap((visit) =>
+      (visit.visit_treatments ?? []).map((treatment) => ({ visit, treatment })),
+    )
+    .filter(
+      ({ treatment }) =>
+        inDateRange(treatment.treatment_date, filters) &&
+        (!shift || treatment.treatment_shift === shift),
+    );
+
+export function renderPendaftaran(
+  visits: VisitRow[],
+  sales: OtcSaleRow[],
+  filters: VisitFilters,
+  poolVisits: VisitRow[] = [],
+  roster: DutyEntry[] = [],
+) {
+  const allVisits = mergeVisits(poolVisits, visits);
+  const umumVisits = visits.filter((visit) => visit.department === "Umum");
+  const gigiVisits = visits.filter((visit) => visit.department === "Gigi");
+
+  const poliUmum = titledSection(
+    "POLI UMUM",
+    statLines(umumVisits, KOLOM_POLI_UMUM),
+  );
+
+  const poliUmumPerShift = SHIFT_LAPORAN.flatMap((shift) => {
+    const shiftVisits = umumVisits.filter(
+      (visit) => visit.admission_shift === shift,
+    );
+    const treatmentNames = findTreatmentRows(
+      allVisits,
+      filters,
+      "Umum",
+      shift,
+    ).map(({ treatment }) => treatment.treatments?.name);
+
+    if (!shiftVisits.length && !treatmentNames.length) return [];
+
+    return titledSection(`SHIFT ${shift.toUpperCase()}`, [
+      ...statLines(shiftVisits, KOLOM_POLI_UMUM),
+      "Tindakan :",
+      ...numberedList(tallyLines(treatmentNames)),
+    ]);
+  });
+
+  const gigiTreatmentNames = findTreatmentRows(allVisits, filters, "Gigi").map(
+    ({ treatment }) => treatment.treatments?.name,
+  );
+  const poliGigi = titledSection("POLI GIGI", [
+    ...statLines(gigiVisits, KOLOM_POLI_GIGI),
+    "Tindakan :",
+    ...numberedList(tallyLines(gigiTreatmentNames)),
+  ]);
+
+  const petugasPerShift = SHIFT_LAPORAN.flatMap((shift) => {
+    const shiftVisits = visits.filter(
+      (visit) => visit.admission_shift === shift,
+    );
+    const umumShift = shiftVisits.filter((v) => v.department === "Umum");
+    const gigiShift = shiftVisits.filter((v) => v.department === "Gigi");
+
+    const pilihNama = (
+      jadwalPeran: string[],
+      namaDariData: (string | null | undefined)[],
+    ) =>
+      getDutyRosterNames(roster, filters, shift, jadwalPeran) ||
+      uniqueValues(namaDariData).join(", ");
+
+    const petugasResep = allVisits
+      .flatMap((visit) => visit.visit_prescription ?? [])
+      .filter(
+        (resep) =>
+          resep.prescription_shift === shift &&
+          inDateRange(resep.prescription_date, filters),
+      )
+      .map((resep) => resep.pharmacist?.name);
+    const kasir = allVisits
+      .flatMap((visit) => visit.visit_payment ?? [])
+      .filter(
+        (bayar) =>
+          bayar.payment_shift === shift &&
+          inDateRange(bayar.payment_date, filters),
+      )
+      .map((bayar) => bayar.cashier?.name);
+    const petugasPenjualan = sales
+      .filter((sale) => sale.sale_shift === shift)
+      .map((sale) => sale.staff?.name);
+
+    const daftarPetugas = [
+      {
+        label: "Dokter Umum",
+        nama: pilihNama(
+          ["dokter umum"],
+          umumShift.map((v) => v.doctor?.name),
+        ),
+      },
+      {
+        label: "Dokter Gigi",
+        nama: pilihNama(
+          ["dokter gigi"],
+          gigiShift.map((v) => v.doctor?.name),
+        ),
+      },
+      {
+        label: "Pendaftaran",
+        nama: pilihNama(
+          ["pendaftaran"],
+          shiftVisits.map((v) => v.registration_staff?.name),
+        ),
+      },
+      {
+        label: "Perawat Umum",
+        nama: pilihNama(
+          ["perawat umum"],
+          umumShift.map((v) => v.nurse?.name),
+        ),
+        wajibTampil: true,
+      },
+      {
+        label: "Perawat Gigi",
+        nama: pilihNama(
+          ["perawat gigi"],
+          gigiShift.map((v) => v.nurse?.name),
+        ),
+      },
+      {
+        label: "Farmasi",
+        nama: pilihNama(
+          [ROLE_FARMASI],
+          [...petugasResep, ...kasir, ...petugasPenjualan],
+        ),
+      },
+      {
+        label: "Apoteker",
+        nama: pilihNama([ROLE_APOTEKER], []),
+      },
+    ];
+
+    return titledSection(
+      `SHIFT ${shift.toUpperCase()}`,
+      daftarPetugas
+        .filter((petugas) => petugas.nama || petugas.wajibTampil)
+        .map((petugas) => formatKeyValue(petugas.label, petugas.nama || "-")),
+    );
+  });
+
+  const nextDayTemplate = Object.entries(NEXT_DAY_STAFF_TEMPLATE).flatMap(
+    ([shift, roles]) =>
+      titledSection(
+        `SHIFT ${shift.toUpperCase()}`,
+        roles.map((role) => `${role} :`),
+      ),
+  );
+  const reportDay = filters.range?.to ?? filters.range?.from ?? new Date();
+  const nextDay = addDays(reportDay, 1);
 
   return [
-    `Selamat ${greeting()} Bapak/Ibu`,
+    `Selamat ${getGreeting()} Bapak/Ibu`,
     "Izin menyampaikan laporan pasien",
     `${CLINIC_NAME},`,
-    dayLabel(f),
+    formatDateRangeLabel(filters),
     "",
     ...poliUmum,
-    ...umumPerShift,
+    ...poliUmumPerShift,
     ...poliGigi,
     "PETUGAS :",
-    ...petugas,
+    ...petugasPerShift,
     "PETUGAS PAGI BERIKUTNYA",
-    longDate(addDays(day, 1)),
+    formatLongDate(nextDay),
     "",
-    ...schedule,
+    ...nextDayTemplate,
   ]
     .join("\n")
     .trimEnd();
@@ -292,83 +370,116 @@ export function renderPendaftaran(
 
 export function renderPerawat(
   visits: VisitRow[],
-  f: VisitFilters,
-  pool: VisitRow[] = [],
+  filters: VisitFilters,
+  poolVisits: VisitRow[] = [],
   roster: DutyEntry[] = [],
 ) {
-  const c: Ctx = { visits, all: merge(pool, visits), sales: [], f };
-  const umum = visits.filter((v) => v.department === "Umum");
+  const allVisits = mergeVisits(poolVisits, visits);
+  const umumVisits = visits.filter((visit) => visit.department === "Umum");
 
-  const sections = shiftsOf(f).flatMap((s) => {
-    const vs = umum.filter((v) => v.admission_shift === s);
-    const rows = treatmentRows(c, "Umum", s);
-    if (!vs.length && !rows.length) return [];
-    const petugas =
-      rosterNames(roster, f, s, ["perawat umum"]) ||
-      uniq(vs.map((v) => v.nurse?.name)).join(", ") ||
-      uniq(rows.map(({ t }) => t.operator?.name)).join(", ") ||
+  const shiftSections = SHIFT_LAPORAN.flatMap((shift) => {
+    const shiftVisits = umumVisits.filter(
+      (visit) => visit.admission_shift === shift,
+    );
+    const treatmentRows = findTreatmentRows(allVisits, filters, "Umum", shift);
+    if (!shiftVisits.length && !treatmentRows.length) return [];
+
+    const nurseNames =
+      getDutyRosterNames(roster, filters, shift, ["perawat umum"]) ||
+      uniqueValues(shiftVisits.map((visit) => visit.nurse?.name)).join(", ") ||
+      uniqueValues(
+        treatmentRows.map(({ treatment }) => treatment.operator?.name),
+      ).join(", ") ||
       "-";
-    return block(`SHIFT ${s.toUpperCase()}`, [
-      kv("Petugas", petugas),
-      ...statLines(countStats(vs), STAT_FIELDS.shift),
+
+    const treatmentLines = treatmentRows.map(({ visit, treatment }) => {
+      const patientName = visit.patients?.name ?? "-";
+      const treatmentName = treatment.treatments?.name ?? "-";
+      const guarantorLabel = visit.guarantor === "BPJS" ? "BPJS" : "Umum";
+      return `${patientName} / ${treatmentName} / ${guarantorLabel}`;
+    });
+
+    return titledSection(`SHIFT ${shift.toUpperCase()}`, [
+      formatKeyValue("Petugas", nurseNames),
+      ...statLines(shiftVisits, KOLOM_POLI_UMUM),
       "Tindakan :",
-      ...numbered(
-        rows.map(
-          ({ v, t }) =>
-            `${v.patients?.name ?? "-"} / ${t.treatments?.name ?? "-"} / ${v.guarantor === "BPJS" ? "BPJS" : "Umum"}`,
-        ),
-      ),
+      ...numberedList(treatmentLines),
     ]);
   });
 
   return [
     "LAPORAN PERAWAT UMUM HARIAN",
-    kv("Hari", dayLabel(f)),
+    formatKeyValue("Hari", formatDateRangeLabel(filters)),
     "",
-    ...(sections.length ? sections : ["Belum ada data.", ""]),
+    ...(shiftSections.length ? shiftSections : ["Belum ada data.", ""]),
     "Terimakasih",
   ].join("\n");
 }
 
+const PRESCRIPTION_KINDS = [
+  { label: "Regular", kind: "Regular" },
+  { label: "Racikan", kind: "Racikan" },
+  { label: "BPJS", kind: "BPJS" },
+] as const;
+
+const PRESCRIPTION_DEPARTMENTS = ["Umum", "Gigi"] as const;
+
 export function renderFarmasi(
   visits: VisitRow[],
-  f: VisitFilters,
-  pool: VisitRow[] = [],
+  filters: VisitFilters,
+  poolVisits: VisitRow[] = [],
   roster: DutyEntry[] = [],
 ) {
-  const rx = merge(pool, visits)
-    .flatMap((v) => (v.visit_prescription ?? []).map((r) => ({ v, r })))
-    .filter(({ r }) => inDateRange(r.prescription_date, f));
+  const prescriptionEntries = mergeVisits(poolVisits, visits)
+    .flatMap((visit) =>
+      (visit.visit_prescription ?? []).map((prescription) => ({
+        visit,
+        prescription,
+      })),
+    )
+    .filter(({ prescription }) =>
+      inDateRange(prescription.prescription_date, filters),
+    );
 
-  // BPJS dihitung sendiri (semua jenis); non-BPJS dibagi Biasa / Racikan
-  const KINDS = [
-    ["Biasa", "Regular"],
-    ["Racikan", "Racikan"],
-    ["BPJS", "BPJS"],
-  ] as const;
+  const shiftSections = SHIFT_LAPORAN.flatMap((shift) => {
+    const shiftEntries = prescriptionEntries.filter(
+      ({ prescription }) => prescription.prescription_shift === shift,
+    );
+    const shiftVisits = visits.filter(
+      (visit) =>
+        visit.admission_shift === shift && STATISTIK.total.dihitung(visit),
+    );
+    if (!shiftEntries.length && !shiftVisits.length) return [];
 
-  const sections = shiftsOf(f).flatMap((s) => {
-    const rows = rx.filter(({ r }) => r.prescription_shift === s);
-    if (!rows.length) return [];
-    const n = (dept: string, kind: string) =>
-      rows.filter(
-        ({ v, r }) =>
-          v.department === dept &&
-          (kind === "BPJS"
-            ? v.guarantor === "BPJS"
-            : v.guarantor !== "BPJS" && r.prescription_type === kind),
-      ).length;
+    const countPrescriptions = (department: string, kind: string) =>
+      shiftEntries.filter(({ visit, prescription }) => {
+        if (visit.department !== department) return false;
+        return kind === "BPJS"
+          ? visit.guarantor === "BPJS"
+          : visit.guarantor !== "BPJS" &&
+              prescription.prescription_type === kind;
+      }).length;
+
+    const pharmacistNames =
+      getDutyRosterNames(roster, filters, shift, [ROLE_FARMASI]) ||
+      uniqueValues(
+        shiftEntries.map(({ prescription }) => prescription.pharmacist?.name),
+      ).join(", ") ||
+      "-";
+
     return [
-      kv(
-        `Petugas ${s}`,
-        rosterNames(roster, f, s, ["farmasi", "apoteker"]) ||
-          uniq(rows.map(({ r }) => r.pharmacist?.name)).join(", ") ||
-          "-",
+      formatKeyValue(`Petugas ${shift}`, pharmacistNames),
+      formatKeyValue("Jumlah Pasien", shiftVisits.length),
+      ...PRESCRIPTION_DEPARTMENTS.map(
+        (department) =>
+          `- Poli ${department} : ${shiftVisits.filter((visit) => visit.department === department).length}`,
       ),
-      kv("Jumlah Pasien", rows.length),
       "Pelayanan Resep :",
-      ...["Umum", "Gigi"].flatMap((d) =>
-        KINDS.map(([label, kind]) => `- ${d} ${label} : ${n(d, kind)}`),
+      ...PRESCRIPTION_DEPARTMENTS.flatMap((department) =>
+        PRESCRIPTION_KINDS.map(
+          ({ label, kind }) =>
+            `- ${department} ${label} : ${countPrescriptions(department, kind)}`,
+        ),
       ),
       "",
     ];
@@ -376,9 +487,9 @@ export function renderFarmasi(
 
   return [
     "LAPORAN FARMASI HARIAN",
-    kv("Tanggal", dayLabel(f)),
+    formatKeyValue("Tanggal :", formatDateRangeLabel(filters)),
     "",
-    ...(sections.length ? sections : ["Belum ada resep.", ""]),
+    ...(shiftSections.length ? shiftSections : ["Belum ada resep.", ""]),
     "Terimakasih",
   ].join("\n");
 }
@@ -386,65 +497,190 @@ export function renderFarmasi(
 export function renderKeuangan(
   visits: VisitRow[],
   sales: OtcSaleRow[],
-  f: VisitFilters,
-  pool: VisitRow[] = [],
+  filters: VisitFilters,
+  poolVisits: VisitRow[] = [],
+  cash: CashSummary | null = null,
 ) {
-  const pays = merge(pool, visits)
-    .flatMap((v) => (v.visit_payment ?? []).map((p) => ({ v, p })))
+  const paymentEntries = mergeVisits(poolVisits, visits)
+    .flatMap((visit) =>
+      (visit.visit_payment ?? []).map((payment) => ({ visit, payment })),
+    )
     .filter(
-      ({ p }) =>
-        inDateRange(p.payment_date, f) &&
-        (f.shift === "all" || p.payment_shift === f.shift),
+      ({ payment }) =>
+        inDateRange(payment.payment_date, filters) &&
+        (filters.shift === "all" || payment.payment_shift === filters.shift),
     );
 
-  const by = (m: string) => pays.filter(({ p }) => p.payment_method === m);
-  const total = (rows: typeof pays) => sum(rows.map(({ p }) => p.amount));
-  const bpjs = by("BPJS");
-  const owed = pays.filter(({ p }) => p.billed_amount > p.amount);
-  const otc = sum(sales.map((s) => s.amount));
-  const dept = (d: string) => bpjs.filter(({ v }) => v.department === d).length;
+  const paymentsByMethod = (method: string) =>
+    paymentEntries.filter(({ payment }) => payment.payment_method === method);
+
+  const totalPaid = (entries: typeof paymentEntries) =>
+    sumNumbers(entries.map(({ payment }) => payment.amount));
+  
+  const nonBpjsPayments = paymentEntries.filter(
+    ({ payment }) => payment.payment_method !== "BPJS",
+  );
+
+  const bpjsPayments = paymentsByMethod("BPJS");
+  const countBpjsByDepartment = (department: string) =>
+    bpjsPayments.filter(({ visit }) => visit.department === department).length;
+
+  const underpaidEntries = paymentEntries.filter(
+    ({ payment }) => payment.billed_amount > payment.amount,
+  );
+  const totalReceivable = sumNumbers(
+    underpaidEntries.map(
+      ({ payment }) => payment.billed_amount - payment.amount,
+    ),
+  );
+  const receivableLines = underpaidEntries.map(
+    ({ visit, payment }) =>
+      `${visit.patients?.name ?? "-"} ${formatRupiah(payment.billed_amount - payment.amount)}`,
+  );
+
+  const cashReceived = totalPaid(paymentsByMethod("Cash"));
+  const totalExpenses = sumNumbers(
+    (cash?.expenses ?? []).map((entry) => entry.amount),
+  );
+  const totalDeposits = sumNumbers(
+    (cash?.deposits ?? []).map((entry) => entry.amount),
+  );
+  const openingBalance = cash?.openingBalance ?? null;
+  const closingBalance =
+    openingBalance === null
+      ? null
+      : openingBalance + cashReceived - totalExpenses - totalDeposits;
+  const cashEntryLines = (entries: CashSummary["expenses"]) =>
+    entries.map(
+      (entry, index) =>
+        `${index + 1}. ${entry.description} ${formatRupiah(entry.amount)}`,
+    );
+
+  const pharmacySalesTotal = sumNumbers(sales.map((sale) => sale.amount));
+  const cashierNames =
+    uniqueValues([
+      ...paymentEntries.map(({ payment }) => payment.cashier?.name),
+      ...sales.map((sale) => sale.staff?.name),
+    ]).join(", ") || "-";
 
   const text = [
     "LAPORAN KEUANGAN HARIAN",
-    kv("Hari", dayLabel(f)),
-    kv("Shift", f.shift === "all" ? "Semua shift" : f.shift),
-    kv(
-      "Petugas",
-      uniq([
-        ...pays.map(({ p }) => p.cashier?.name),
-        ...sales.map((s) => s.staff?.name),
-      ]).join(", ") || "-",
+    formatKeyValue("Hari", formatDateRangeLabel(filters)),
+    formatKeyValue(
+      "Shift",
+      filters.shift === "all" ? "Semua shift" : filters.shift,
     ),
-    "Saldo Awal :",
-    kv("Saldo Masuk", rp(total(pays))),
-    kv("- Cash", rp(total(by("Cash")))),
-    kv("- Qris", rp(total(by("QRIS")))),
-    kv("- Transfer", rp(total(by("Transfer")))),
-    `${kv("- BPJS", rp(total(bpjs)))} ( ${dept("Umum")} Umum, ${dept("Gigi")} Gigi )`,
-    ...(otc
-      ? [kv("- Penjualan Apotek (cara bayar belum dicatat)", rp(otc))]
+    formatKeyValue("Petugas", cashierNames),
+    openingBalance === null
+      ? "Saldo Awal :"
+      : formatKeyValue("Saldo Awal", formatRupiah(openingBalance)),
+    formatKeyValue("Saldo Masuk", formatRupiah(totalPaid(nonBpjsPayments))),
+    formatKeyValue("- Cash", formatRupiah(totalPaid(paymentsByMethod("Cash")))),
+    formatKeyValue("- Qris", formatRupiah(totalPaid(paymentsByMethod("QRIS")))),
+    formatKeyValue(
+      "- Transfer",
+      formatRupiah(totalPaid(paymentsByMethod("Transfer"))),
+    ),
+    `${formatKeyValue("- BPJS", formatRupiah(totalPaid(bpjsPayments)))} ( ${countBpjsByDepartment("Umum")} Umum, ${countBpjsByDepartment("Gigi")} Gigi )`,
+    ...(pharmacySalesTotal
+      ? [
+          formatKeyValue(
+            "- Penjualan Apotek (cara bayar belum dicatat)",
+            formatRupiah(pharmacySalesTotal),
+          ),
+        ]
       : []),
-    "Saldo Keluar :",
-    "Saldo Setor :",
-    "Saldo Sisa :",
-    kv("Piutang", rp(sum(owed.map(({ p }) => p.billed_amount - p.amount)))),
-    ...numbered(
-      owed.map(
-        ({ v, p }) =>
-          `${v.patients?.name ?? "-"} ${rp(p.billed_amount - p.amount)}`,
-      ),
-    ),
+    cash
+      ? formatKeyValue("Saldo Keluar", formatRupiah(totalExpenses))
+      : "Saldo Keluar :",
+    ...cashEntryLines(cash?.expenses ?? []),
+    cash
+      ? formatKeyValue("Saldo Setor", formatRupiah(totalDeposits))
+      : "Saldo Setor :",
+    ...cashEntryLines(cash?.deposits ?? []),
+    closingBalance === null
+      ? "Saldo Sisa :"
+      : formatKeyValue("Saldo Sisa", formatRupiah(closingBalance)),
+    formatKeyValue("Piutang", formatRupiah(totalReceivable)),
+    ...numberedList(receivableLines),
   ].join("\n");
 
-  return {
-    text,
-    warnings: [
-      "Saldo Awal, Keluar, Setor, dan Sisa belum terisi (isi manual sebelum dikirim)",
-      ...(otc
+  const warnings = [
+    ...(!cash
+      ? [
+          "Saldo kas tidak dihitung otomatis (pilih tepat satu tanggal). Isi Saldo Awal, Keluar, Setor, dan Sisa manual sebelum dikirim",
+        ]
+      : openingBalance === null
         ? [
-            `Penjualan apotek ${rp(otc)} belum masuk rincian karena belum ada cara bayar`,
+            "Saldo Awal belum bisa dihitung karena titik awal saldo belum ada untuk tanggal ini (isi Saldo Awal dan Sisa manual)",
           ]
         : []),
-    ],
-  };
+    ...(pharmacySalesTotal
+      ? [
+          `Penjualan apotek ${formatRupiah(pharmacySalesTotal)} belum masuk rincian karena belum ada cara bayar`,
+        ]
+      : []),
+  ];
+
+  return { text, warnings };
+}
+
+const CARE_PERLU_MAKAN = ["Rawat Inap", "Home Visit"];
+
+const JAM_MULAI_MAKAN_SORE = 13;
+
+const toTitleCase = (text: string) =>
+  text
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .replace(
+      /(^|[\s-])(\p{L})/gu,
+      (_match, separator: string, letter: string) =>
+        separator + letter.toUpperCase(),
+    );
+
+export function renderMakan(visits: VisitRow[], now: Date = new Date()) {
+  const mealTime = now.getHours() < JAM_MULAI_MAKAN_SORE ? "Pagi" : "Sore";
+
+  const patients = visits
+    .filter(
+      (visit) =>
+        !!visit.care &&
+        CARE_PERLU_MAKAN.includes(visit.care) &&
+        !visit.discharge_date,
+    )
+    .map((visit) => ({
+      room: visit.room?.trim() || null,
+      name: toTitleCase(visit.patients?.name ?? "-"),
+    }))
+    .sort((a, b) => {
+      if (!a.room !== !b.room) return a.room ? -1 : 1;
+      return (
+        (a.room ?? "").localeCompare(b.room ?? "", "id", { numeric: true }) ||
+        a.name.localeCompare(b.name, "id")
+      );
+    });
+
+  const patientList = patients.length
+    ? patients
+        .map(
+          (patient, index) =>
+            `${index + 1}. ${patient.room ?? "-"} / ${patient.name}`,
+        )
+        .join("\n\n")
+    : "-";
+
+  return [
+    "Assalamu'alaikum, izin menyampaikan laporan",
+    `pasien rawat inap untuk persiapan makan ${mealTime}`,
+    CLINIC_NAME.toUpperCase(),
+    formatLongDate(now),
+    "",
+    `Total Ranap Umum = ${patients.length}`,
+    "",
+    patientList,
+    "",
+    "Terima kasih",
+  ].join("\n");
 }

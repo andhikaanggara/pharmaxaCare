@@ -59,99 +59,101 @@ export function VisitsTable({
   onRxAction,
 }: VisitsTableProps) {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Pasien</TableHead>
-          <TableHead>Departemen</TableHead>
-          <TableHead>Guarantor</TableHead>
-          <TableHead>Care</TableHead>
-          <TableHead>Tindakan</TableHead>
-          <TableHead>Resep</TableHead>
-          <TableHead>Pembayaran</TableHead>
-          <TableHead className="text-right">Aksi</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {visits.length === 0 && (
+    <div className="max-h-125 overflow-y-auto relative pb-6">
+      <Table>
+        <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
           <TableRow>
-            <TableCell
-              colSpan={8}
-              className="h-24 text-center text-muted-foreground"
-            >
-              Belum ada data kunjungan.
-            </TableCell>
+            <TableHead>Pasien</TableHead>
+            <TableHead>Departemen</TableHead>
+            <TableHead>Guarantor</TableHead>
+            <TableHead>Care</TableHead>
+            <TableHead>Tindakan</TableHead>
+            <TableHead>Resep</TableHead>
+            <TableHead>Pembayaran</TableHead>
+            <TableHead className="text-right">Aksi</TableHead>
           </TableRow>
-        )}
-
-        {visits.map((visit) => {
-          return (
-            <TableRow key={visit.id}>
-              <TableCell className="font-medium">
-                <PatientPopoverCard
-                  visit={visit}
-                  onEdit={() => onAction("patient-data", visit)}
-                />
-              </TableCell>
-              <TableCell>{visit.department}</TableCell>
-              <TableCell>{visit.guarantor}</TableCell>
-              <TableCell>{visit.care ?? <Empty />}</TableCell>
-
-              {/* Tindakan: klik untuk melihat daftar */}
-              <TableCell>
-                <TreatmentPopoverCard
-                  visit={visit}
-                  onEdit={() => onAction("treatment", visit)}
-                  onFollowUp={() => onAction("followup-treatment", visit)}
-                  onGroupAction={onGroupAction}
-                />
-              </TableCell>
-
-              <TableCell>
-                <PrescriptionPopoverCard
-                  visit={visit}
-                  onOpen={() => onAction("prescription", visit)}
-                  onRxAction={onRxAction}
-                />
-              </TableCell>
-
-              <TableCell>
-                <PaymentPopoverCard
-                  visit={visit}
-                  onOpen={() => onAction("payment", visit)}
-                  onEdit={() => onAction("edit-payment", visit)}
-                />
-              </TableCell>
-
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-8">
-                      <MoreHorizontalIcon />
-                      <span className="sr-only">Buka menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onSelect={() => onAction("edit-visit", visit)}
-                    >
-                      <PencilIcon />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onSelect={() => onAction("delete-visit", visit)}
-                    >
-                      <Trash2Icon />
-                      Hapus
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+        </TableHeader>
+        <TableBody>
+          {visits.length === 0 && (
+            <TableRow>
+              <TableCell
+                colSpan={8}
+                className="h-24 text-center text-muted-foreground"
+              >
+                Belum ada data kunjungan.
               </TableCell>
             </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+          )}
+
+          {visits.map((visit) => {
+            return (
+              <TableRow key={visit.id}>
+                <TableCell className="font-medium">
+                  <PatientPopoverCard
+                    visit={visit}
+                    onEdit={() => onAction("patient-data", visit)}
+                  />
+                </TableCell>
+                <TableCell>{visit.department}</TableCell>
+                <TableCell>{visit.guarantor}</TableCell>
+                <TableCell>{visit.care ?? <Empty />}</TableCell>
+
+                {/* Tindakan: klik untuk melihat daftar */}
+                <TableCell>
+                  <TreatmentPopoverCard
+                    visit={visit}
+                    onEdit={() => onAction("treatment", visit)}
+                    onFollowUp={() => onAction("followup-treatment", visit)}
+                    onGroupAction={onGroupAction}
+                  />
+                </TableCell>
+
+                <TableCell>
+                  <PrescriptionPopoverCard
+                    visit={visit}
+                    onOpen={() => onAction("prescription", visit)}
+                    onRxAction={onRxAction}
+                  />
+                </TableCell>
+
+                <TableCell>
+                  <PaymentPopoverCard
+                    visit={visit}
+                    onOpen={() => onAction("payment", visit)}
+                    onEdit={() => onAction("edit-payment", visit)}
+                  />
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="size-8">
+                        <MoreHorizontalIcon />
+                        <span className="sr-only">Buka menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onSelect={() => onAction("edit-visit", visit)}
+                      >
+                        <PencilIcon />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={() => onAction("delete-visit", visit)}
+                      >
+                        <Trash2Icon />
+                        Hapus
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
