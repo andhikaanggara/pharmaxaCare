@@ -30,76 +30,78 @@ type OtcSalesTableProps = {
 
 export function OtcSalesTable({ sales, onEdit, onDelete }: OtcSalesTableProps) {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Nama Obat</TableHead>
-          <TableHead className="text-right">Nominal</TableHead>
-          <TableHead className="w-10 text-right">
-            <span className="sr-only">Aksi</span>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {sales.length === 0 && (
+    <div className="max-h-70 overflow-y-auto relative pb-2">
+      <Table>
+        <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
           <TableRow>
-            <TableCell
-              colSpan={3}
-              className="h-24 text-center text-muted-foreground"
-            >
-              Belum ada penjualan obat.
-            </TableCell>
+            <TableHead>Nama Obat</TableHead>
+            <TableHead className="text-right">Nominal</TableHead>
+            <TableHead className="w-10 text-right">
+              <span className="sr-only">Aksi</span>
+            </TableHead>
           </TableRow>
-        )}
-
-        {sales.map((sale) => {
-          const names = sale.drug_names.join(", ");
-
-          return (
-            <TableRow key={sale.id}>
-              <TableCell className="max-w-40 whitespace-normal">
-                <p className="line-clamp-2 font-medium" title={names}>
-                  {names}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {format(parseISO(sale.sale_date), "d MMM yyyy", {
-                    locale: idLocale,
-                  })}{" "}
-                  · {sale.sale_shift} · {sale.payment_method}
-                </p>
-              </TableCell>
-
-              <TableCell className="text-right">
-                {rupiah.format(sale.amount)}
-              </TableCell>
-
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-8">
-                      <MoreHorizontalIcon />
-                      <span className="sr-only">Buka menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => onEdit(sale)}>
-                      <Edit />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onSelect={() => onDelete(sale)}
-                    >
-                      <Trash />
-                      Hapus
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+        </TableHeader>
+        <TableBody>
+          {sales.length === 0 && (
+            <TableRow>
+              <TableCell
+                colSpan={3}
+                className="h-24 text-center text-muted-foreground"
+              >
+                Belum ada penjualan obat.
               </TableCell>
             </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+          )}
+
+          {sales.map((sale) => {
+            const names = sale.drug_names.join(", ");
+
+            return (
+              <TableRow key={sale.id}>
+                <TableCell className="max-w-40 whitespace-normal">
+                  <p className="line-clamp-2 font-medium" title={names}>
+                    {names}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(parseISO(sale.sale_date), "d MMM yyyy", {
+                      locale: idLocale,
+                    })}{" "}
+                    · {sale.sale_shift} · {sale.payment_method}
+                  </p>
+                </TableCell>
+
+                <TableCell className="text-right">
+                  {rupiah.format(sale.amount)}
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="size-8">
+                        <MoreHorizontalIcon />
+                        <span className="sr-only">Buka menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => onEdit(sale)}>
+                        <Edit />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={() => onDelete(sale)}
+                      >
+                        <Trash />
+                        Hapus
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
