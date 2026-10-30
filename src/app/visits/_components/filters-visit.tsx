@@ -22,8 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CARE_OPTIONS, OtcSaleRow, VisitRow } from "../schema";
+import { currentShift, ShiftName } from "@/lib/shift";
 
-export type ShiftFilter = "all" | "Pagi" | "Sore" | "Malam";
+export type ShiftFilter = "all" | ShiftName;
 
 export type VisitFilters = {
   range: DateRange | undefined;
@@ -34,10 +35,10 @@ export type VisitFilters = {
 };
 
 export const getDefaultFilters = (): VisitFilters => {
-  const today = new Date();
+  const current = currentShift();
   return {
-    range: { from: today, to: today }, // default: hari ini
-    shift: "all",
+    range: { from: current.date, to: current.date },
+    shift: current.shift,
     department: [],
     guarantor: [],
     care: [],
@@ -61,12 +62,13 @@ const fmt = (d: Date) => format(d, "d MMM yyyy", { locale: idLocale });
 // ================
 // === function ===
 // ================
-export const toDate = (s: string) =>
-  new Date(!s.includes("T") || /(Z|[+-]\d{2}:?\d{2})$/.test(s) ? s : `${s}Z`);
+export const toDate = (s: string) => new Date(s);
 
 export function filterVisits(visits: VisitRow[], f: VisitFilters): VisitRow[] {
   const from = f.range?.from && startOfDay(f.range.from);
-  const to = f.range?.from && endOfDay(f.range.to ?? f.range.from);
+  const to = f.range?.to
+    ? endOfDay(f.range.to)
+    : f.range?.from && endOfDay(f.range.from);
 
   return visits.filter((v) => {
     if (from && to) {
