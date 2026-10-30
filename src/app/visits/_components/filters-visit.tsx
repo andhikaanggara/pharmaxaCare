@@ -22,9 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CARE_OPTIONS, OtcSaleRow, VisitRow } from "../schema";
-import { currentShift, ShiftName } from "@/lib/shift";
 
-export type ShiftFilter = "all" | ShiftName;
+export type ShiftFilter = "all" | "Pagi" | "Sore" | "Malam";
 
 export type VisitFilters = {
   range: DateRange | undefined;
@@ -35,10 +34,10 @@ export type VisitFilters = {
 };
 
 export const getDefaultFilters = (): VisitFilters => {
-  const current = currentShift();
+  const today = new Date();
   return {
-    range: { from: current.date, to: current.date },
-    shift: current.shift,
+    range: { from: today, to: today }, // default: hari ini
+    shift: "all",
     department: [],
     guarantor: [],
     care: [],
