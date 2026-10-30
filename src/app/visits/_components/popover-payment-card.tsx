@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { isRoomCare, VisitRow } from "../schema";
+import { initialPayment, isRoomCare, outstanding, paidTotal, settlements, VisitRow } from "../schema";
 import {
   Popover,
   PopoverContent,
@@ -15,13 +15,15 @@ export function PaymentPopoverCard({
   visit,
   onOpen,
   onEdit,
+  onSettle,
 }: {
   visit: VisitRow;
   onOpen: () => void;
   onEdit: () => void;
+  onSettle: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const pay = visit.visit_payment?.[0];
+  const pay = initialPayment(visit);
 
   if (!pay) {
     const inCare = isRoomCare(visit.care);
@@ -36,26 +38,30 @@ export function PaymentPopoverCard({
         }
         className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
       >
-        {inCare ? "Dalam perawatan" : <>Belum diisi</>}
+        {inCare ? "Dalam perawatan" : "Belum diisi"}
       </button>
     );
   }
 
-  const remaining = Math.max(pay.billed_amount - pay.amount, 0);
+  const fmtDate = (d: string, shift: string) =>
+    `${format(parseISO(d), "d MMM yyyy", { locale: idLocale })} · ${shift}`;
+  const remaining = outstanding(visit);
+  const extra = settlements(visit);
   const rows: [string, string][] = [
     ["Nominal", rupiah.format(pay.billed_amount)],
-    ["Terbayar", rupiah.format(pay.amount)],
+    ["Terbayar", rupiah.format(paidTotal(visit))],
     ["Sisa", rupiah.format(remaining)],
     ["Cara bayar", pay.payment_method],
-    [
-      "Tanggal",
-      `${format(parseISO(pay.payment_date), "d MMM yyyy", { locale: idLocale })} · ${pay.payment_shift}`,
-    ],
+    ["Tanggal", fmtDate(pay.payment_date, pay.payment_shift)],
     ["Kasir", pay.cashier?.name ?? "-"],
     ...(visit.patient_condition
       ? ([["Kondisi", visit.patient_condition]] as [string, string][])
       : []),
   ];
+  const act = (fn: () => void) => () => {
+    setOpen(false);
+    fn();
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -64,7 +70,7 @@ export function PaymentPopoverCard({
           type="button"
           className="inline-flex items-center gap-2 text-sm underline-offset-4 hover:underline"
         >
-          {rupiah.format(pay.amount)}
+          {rupiah.format(paidTotal(visit))}
           {remaining > 0 && <Badge variant="outline">Kurang</Badge>}
         </button>
       </PopoverTrigger>
@@ -78,17 +84,36 @@ export function PaymentPopoverCard({
             </div>
           ))}
         </dl>
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full"
-          onClick={() => {
-            setOpen(false);
-            onOpen();
-          }}
+
+        {extra.length > 0 && (
+          <div className="space-y-1 text-sm">
+            <p className="text-xs font-medium text-muted-foreground">
+              Pelunasan
+            </p>
+            {extra.map((s) => (
+              <p key={s.id} className="flex justify-between gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {fmtDate(s.payment_date, s.payment_shift)} ·{" "}
+                  {s.payment_method}
+                </span>
+                <span>{rupiah.format(s.amount)}</span>
+              </p>
+            ))}
+          </div>
+        )}
+
+        <div
+          className={remaining > 0 ? "grid grid-cols-2 gap-2" : "grid gap-2"}
         >
-          Edit Pembayaran
-        </Button>
+          <Button size="sm" variant="outline" onClick={act(onEdit)}>
+            Edit Pembayaran
+          </Button>
+          {remaining > 0 && (
+            <Button size="sm" onClick={act(onSettle)}>
+              Bayar Piutang
+            </Button>
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );

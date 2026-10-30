@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { id as idLocale } from "date-fns/locale";
 import {
   BedDouble,
   ChevronDown,
@@ -62,9 +61,6 @@ import { rupiah } from "@/app/visits/utils";
 import { DashboardCharts } from "./dashboard-charts";
 import { ReportReviewDialog } from "./report-review-dialog";
 import { DutyEntry } from "@/app/visits/data";
-import { getSingleReportDate } from "./report-wa";
-import { CashSummary } from "@/lib/cash-shared";
-import { getCashSummary } from "@/lib/cash";
 import { useEffect, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -77,11 +73,23 @@ import {
 import { buildMonthlyCharts } from "./dashboard-data";
 import type { MonthlyChartData } from "../data";
 import { format } from "date-fns";
+import { CashLedgerDialog } from "./cash-ledger-dialog";
+import { toast } from "sonner";
+import { reportSlots } from "@/lib/cash";
+import { getCashSummary, type CashSummary } from "@/app/dashboard/cash-data";
+import type {
+  CashEntryRow,
+  CashFormType,
+  StaffOption,
+} from "@/app/visits/schema";
+
 // state dan komponen filter yang sudah ada
 
 // ===== DATA DUMMY =====
 
 const ROLES = ["Dokter", "Perawat", "Farmasi/Kasir", "Pendaftaran"];
+
+export type ReportResult = { text: string; warnings: string[] };
 
 export default function DashboardSummary({
   visits,
@@ -91,6 +99,8 @@ export default function DashboardSummary({
   monthly,
   staffPerf,
   periodStart,
+  cashEntries,
+  staff,
 }: {
   visits: VisitRow[];
   otcSales: OtcSaleRow[];
@@ -99,6 +109,8 @@ export default function DashboardSummary({
   monthly: MonthlyChartData;
   staffPerf: StaffPerf[];
   periodStart: string;
+  cashEntries: CashEntryRow[];
+  staff: StaffOption[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -106,6 +118,10 @@ export default function DashboardSummary({
   const [pending, startTransition] = useTransition();
   const [filters, setFilters] = useState<VisitFilters>(getDefaultFilters);
   const [role, setRole] = useState("all");
+  const [cashOpen, setCashOpen] = useState(false);
+
+  const [cashKind, setCashKind] = useState<CashFormType["kind"]>("Setor");
+
   const ROLE_MATCH: Record<string, (p: StaffPerf) => boolean> = {
     Dokter: (p) => p.doctor > 0,
     Perawat: (p) => p.nurse > 0,
@@ -162,37 +178,32 @@ export default function DashboardSummary({
     text: string;
     warnings: string[];
   } | null>(null);
+
   const openReview = async (reportRole: ReportRole) => {
-    // Saldo kas hanya untuk laporan Keuangan, dan hanya bila filter tepat satu tanggal
-    const date = getSingleReportDate(filters);
-    let cash: CashSummary | null = null;
-    let cashError: string | null = null;
-
-    if (reportRole === "Keuangan" && date) {
-      try {
-        cash = await getCashSummary(date, filters.shift);
-      } catch {
-        cashError = "Saldo kas gagal dimuat, isi Saldo Awal sampai Sisa manual";
+    try {
+      let cash: CashSummary | undefined;
+      if (reportRole === "Keuangan") {
+        const { from, to } = reportSlots(filters);
+        cash = await getCashSummary(from, to);
       }
+      setReview({
+        role: reportRole,
+        ...buildReport(
+          reportRole,
+          fv,
+          fs,
+          filters,
+          [...visits, ...inpatients],
+          roster,
+          inpatients, // laporan Makan
+          cash, // laporan Keuangan
+        ),
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Gagal memuat laporan");
     }
-
-    const report = buildReport(
-      reportRole,
-      fv,
-      fs,
-      filters,
-      [...visits, ...inpatients], // pool, tetap seperti sebelumnya
-      roster,
-      inpatients, // BARU: untuk laporan Makan
-      cash, // BARU: untuk laporan Keuangan
-    );
-
-    setReview({
-      role: reportRole,
-      text: report.text,
-      warnings: cashError ? [cashError, ...report.warnings] : report.warnings,
-    });
   };
+
   const KPIS = [
     {
       label: "Total Kunjungan",
@@ -243,6 +254,10 @@ export default function DashboardSummary({
         </h1>
         <div className="flex flex-wrap gap-2">
           <VisitFilterBar value={filters} onChange={setFilters} />
+          <Button variant="outline" onClick={() => setCashOpen(true)}>
+            <Wallet className="size-4" />
+            Catat Kas
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
@@ -384,6 +399,12 @@ export default function DashboardSummary({
         title={`Laporan ${review?.role ?? ""}`}
         text={review?.text ?? ""}
         warnings={review?.warnings ?? []}
+      />
+      <CashLedgerDialog
+        open={cashOpen}
+        onOpenChange={setCashOpen}
+        entries={cashEntries}
+        staff={staff}
       />
     </main>
   );

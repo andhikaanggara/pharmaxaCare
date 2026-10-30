@@ -21,6 +21,8 @@ import {
   RxItemPayloadSchema,
   OtcSalePayload,
   OtcSalePayloadSchema,
+  SettlementPayload,
+  SettlementPayloadSchema,
 } from "./schema";
 
 const PATH = "/dashboard/visits";
@@ -487,10 +489,17 @@ export async function saveRxPayment(visitId: string, input: RxPaymentPayload) {
 
     const { data: oldPay, error: oldPayError } = await supabase
       .from("visit_payments")
-      .select("id")
+      .select("id, is_settlement")
       .eq("visit_id", visitId);
     if (oldPayError) throw new Error(oldPayError.message);
-    const oldPayIds = (oldPay ?? []).map((r) => r.id);
+    if (!closing && (oldPay ?? []).some((p) => p.is_settlement)) {
+      throw new Error(
+        "Tidak bisa dikembalikan ke dalam perawatan karena sudah ada pelunasan",
+      );
+    }
+    const oldPayIds = (oldPay ?? [])
+      .filter((p) => !p.is_settlement)
+      .map((r) => r.id);
 
     const newRxIds: string[] = [];
     const newPayIds: string[] = [];
@@ -642,6 +651,7 @@ const toOtcRow = (v: OtcSalePayload) => ({
   staff_id: v.staff_id,
   amount: v.amount,
   drug_names: v.drugs.map((d) => d.name),
+  payment_method: v.payment_method,
 });
 
 export async function createOtcSale(input: OtcSalePayload) {
@@ -711,5 +721,51 @@ export async function deleteOtcSale(id: string) {
 
     revalidatePath(PATH);
     return { deleted: data.length };
+  });
+}
+
+export async function settleReceivable(
+  visitId: string,
+  input: SettlementPayload,
+) {
+  return authAction(async ({ supabase, isGuest }) => {
+    const parsed = SettlementPayloadSchema.safeParse(input);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Data tidak valid");
+    }
+    const v = parsed.data;
+
+    const { data: pays, error: payError } = await supabase
+      .from("visit_payments")
+      .select("billed_amount, amount, is_settlement")
+      .eq("visit_id", visitId);
+    if (payError) throw new Error(payError.message);
+
+    const initial = (pays ?? []).find((p) => !p.is_settlement);
+    if (!initial) throw new Error("Pembayaran awal belum ada");
+    const remaining =
+      initial.billed_amount - (pays ?? []).reduce((s, p) => s + p.amount, 0);
+    if (remaining <= 0) throw new Error("Tagihan sudah lunas");
+    if (v.amount > remaining) {
+      throw new Error(
+        `Melebihi sisa tagihan (Rp${remaining.toLocaleString("id-ID")})`,
+      );
+    }
+
+    const { error } = await supabase.from("visit_payments").insert({
+      visit_id: visitId,
+      billed_amount: 0, // nominal tagihan hanya ada di pembayaran awal
+      amount: v.amount,
+      payment_method: v.payment_method,
+      payment_date: v.date,
+      payment_shift: v.shift,
+      cashier_staff_id: v.staff_id,
+      is_demo: isGuest,
+      is_settlement: true,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath(PATH);
+    return { remaining: remaining - v.amount };
   });
 }

@@ -19,9 +19,10 @@ import {
   renderPerawat,
 } from "./report-wa";
 import { DutyEntry } from "@/app/visits/data";
-import { CashSummary } from "@/lib/cash-shared";
 import { elapsedDays, monthLabel, todayYmd, wibDay } from "@/lib/periods";
 import { MonthlyChartData } from "../data";
+import { outstanding as owedOf } from "@/app/visits/schema";
+import { CashSummary } from "../cash-data";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
@@ -39,8 +40,8 @@ export function buildKpis(
     inpatients: inpatientCount,
     paid: sum(pays.map((p) => p.amount)),
     payCount: pays.length,
-    outstanding: sum(pays.map((p) => Math.max(p.billed_amount - p.amount, 0))),
-    unpaid: pays.filter((p) => p.billed_amount > p.amount).length,
+    outstanding: sum(visits.map(owedOf)),
+    unpaid: visits.filter((v) => owedOf(v) > 0).length,
     otc: sum(sales.map((s) => s.amount)),
     otcCount: sales.length,
     treatments: visits.flatMap((v) => v.visit_treatments ?? []).length,
@@ -136,7 +137,7 @@ export function buildReport(
   pool: VisitRow[] = [],
   roster: DutyEntry[] = [],
   inpatients: VisitRow[] = [],
-  cash: CashSummary | null = null,
+  cash?: CashSummary,
 ) {
   const warn: string[] = [];
   const check = (fn: (v: VisitRow) => boolean, msg: string) => {
@@ -174,9 +175,7 @@ export function buildReport(
       warnings: warn,
     };
   }
-  if (role === "Makan") {
-    return { text: renderMakan(inpatients), warnings: warn };
-  }
-  const k = renderKeuangan(visits, sales, VisitFilters, pool);
-  return { text: k.text, warnings: [...warn, ...k.warnings] };
+  if (role === "Makan") return { text: renderMakan(inpatients), warnings: [] };
+  if (!cash) throw new Error("Data kas belum dimuat");
+  return renderKeuangan(visits, VisitFilters, pool, cash);
 }

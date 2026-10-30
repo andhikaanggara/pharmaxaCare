@@ -50,7 +50,8 @@ const VISIT_SELECT = `
         payment_date,
         payment_shift,
         cashier_staff_id,
-        cashier:staff!cashier_staff_id ( name )
+        cashier:staff!cashier_staff_id ( name ),
+        is_settlement
       )
 `;
 
@@ -140,7 +141,7 @@ export async function getOtcSales(): Promise<OtcSaleRow[]> {
   const { data, error } = await supabase
     .from("otc_sales")
     .select(
-      "id, sale_date, sale_shift, staff_id, amount, drug_names, staff:staff!staff_id ( name )",
+      "id, sale_date, sale_shift, staff_id, amount, drug_names, staff:staff!staff_id ( name ), payment_method",
     )
     .order("sale_date", { ascending: false })
     .order("created_at", { ascending: false })
@@ -150,7 +151,12 @@ export async function getOtcSales(): Promise<OtcSaleRow[]> {
   return (data ?? []) as unknown as OtcSaleRow[];
 }
 
-export type DutyEntry = { date: string; shift: string; role: string; name: string };
+export type DutyEntry = {
+  date: string;
+  shift: string;
+  role: string;
+  name: string;
+};
 
 export async function getDutyRoster(days = 14): Promise<DutyEntry[]> {
   const supabase = await createClient();
@@ -167,7 +173,14 @@ export async function getDutyRoster(days = 14): Promise<DutyEntry[]> {
   };
   return ((data ?? []) as unknown as Row[]).flatMap((r) =>
     r.staff?.roles
-      ? [{ date: r.date, shift: r.shift, role: r.staff.roles.name.toLowerCase(), name: r.staff.name }]
+      ? [
+          {
+            date: r.date,
+            shift: r.shift,
+            role: r.staff.roles.name.toLowerCase(),
+            name: r.staff.name,
+          },
+        ]
       : [],
   );
 }

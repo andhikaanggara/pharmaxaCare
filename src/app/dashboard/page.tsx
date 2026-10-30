@@ -2,11 +2,13 @@ import {
   getDutyRoster,
   getInpatientRows,
   getOtcSales,
+  getStaff,
   getVisitRows,
 } from "@/app/visits/data";
 import DashboardSummary from "./_components/dashboard-summary";
 import { payrollPeriod, todayYmd } from "@/lib/periods";
 import { getMonthlyChartData, getStaffPerformance } from "./data";
+import { getCashEntries } from "./cash-data";
 
 export default async function DashboardPage({
   searchParams,
@@ -22,15 +24,25 @@ export default async function DashboardPage({
     ? sp.period!
     : today;
 
-  const [visits, otcSales, inpatients, roster, monthly, staffPerf] =
-    await Promise.all([
-      getVisitRows(),
-      getOtcSales(),
-      getInpatientRows(),
-      getDutyRoster(),
-      getMonthlyChartData(monthDay),
-      getStaffPerformance(periodDay),
-    ]);
+  const [
+    visits,
+    otcSales,
+    inpatients,
+    roster,
+    monthly,
+    staffPerf,
+    cashEntries,
+    staff,
+  ] = await Promise.all([
+    getVisitRows(),
+    getOtcSales(),
+    getInpatientRows(),
+    getDutyRoster(),
+    getMonthlyChartData(monthDay),
+    getStaffPerformance(periodDay),
+    getCashEntries(),
+    getStaff(),
+  ]);
   return (
     <DashboardSummary
       visits={visits}
@@ -40,6 +52,8 @@ export default async function DashboardPage({
       monthly={monthly}
       staffPerf={staffPerf}
       periodStart={payrollPeriod(periodDay).start}
+      cashEntries={cashEntries}
+      staff={staff}
     />
   );
 }

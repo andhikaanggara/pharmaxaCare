@@ -39,6 +39,7 @@ import {
   RxPaymentFormSchema,
   SHIFTS,
   VisitPrescriptionRow,
+  initialPayment,
   isRoomCare,
   needsPayment,
   type RxPaymentFormType,
@@ -48,6 +49,7 @@ import {
 } from "../schema";
 import { CurrencyInput } from "@/components/input-currency";
 import { rupiah } from "../utils";
+import { currentShift } from "@/lib/shift";
 
 type RxPaymentDialogProps = {
   open: boolean;
@@ -82,7 +84,7 @@ const getFormValues = (
       "Dalam Perawatan")
     : undefined;
 
-  const pay = visit?.visit_payment?.[0];
+  const pay = visit ? initialPayment(visit) : undefined;
 
   const rx = longStay ? undefined : visit?.visit_prescription?.[0];
 
@@ -106,8 +108,8 @@ const getFormValues = (
     prescription_type:
       RX_TYPES.find((t) => t === rx?.prescription_type) ?? "Tidak ada",
     patient_condition: condition,
-    date: entry ? parseISO(entry.date) : new Date(),
-    shift: entry ? SHIFTS.find((s) => s === entry.shift) : undefined,
+    date: entry ? parseISO(entry.date) : currentShift().date,
+    shift: entry ? SHIFTS.find((s) => s === entry.shift) : currentShift().shift,
     staff_id: entry?.staff ?? "",
     payment:
       visit?.care && needsPayment(longStay, condition)
@@ -162,7 +164,7 @@ export default function RxPaymentDialog({
   const showPayment =
     !isRxEdit && !!care && needsPayment(isLongStay, condition);
 
-  const hadPayment = (visit?.visit_payment?.length ?? 0) > 0;
+  const hadPayment = !!(visit && initialPayment(visit));    
   const hadRx = (visit?.visit_prescription?.length ?? 0) > 0;
   const isEditMode =
     isRxEdit || isPaymentOnly || hadPayment || (!isLongStay && hadRx);

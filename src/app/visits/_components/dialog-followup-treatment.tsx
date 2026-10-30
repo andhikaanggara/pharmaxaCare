@@ -37,6 +37,7 @@ import {
   type TreatmentOption,
   type VisitRow,
 } from "../schema";
+import { currentShift } from "@/lib/shift";
 
 type FollowUpTreatmentDialogProps = {
   open: boolean;
@@ -53,12 +54,13 @@ const getDefaults = (
   rows?: VisitTreatmentRow[] | null,
 ): Partial<FollowUpFormType> => {
   const first = rows?.[0];
+  const now = currentShift();
   if (!rows || !first) {
     return {
       operator_staff_id: "",
       assistant_staff_id: "",
-      treatment_date: new Date(),
-      treatment_shift: undefined,
+      treatment_date: now.date,
+      treatment_shift: now.shift,
       treatments: [{ treatment_id: "" }],
     };
   }

@@ -299,6 +299,7 @@ export type VisitPaymentRow = {
   payment_shift: string;
   cashier_staff_id: string | null;
   cashier: { name: string } | null;
+  is_settlement: boolean;
 };
 
 // ===== RESEP & PEMBAYARAN =====
@@ -466,8 +467,11 @@ export type OtcSaleRow = {
   staff_id: string | null;
   amount: number;
   drug_names: string[];
+  payment_method: string;
   staff: { name: string } | null;
 };
+
+export const OTC_METHODS = ["Cash", "QRIS", "Transfer"] as const;
 
 const OtcBase = z.object({
   shift: z.enum(SHIFTS, { error: "Pilih shift" }),
@@ -486,6 +490,7 @@ const OtcBase = z.object({
       }),
     )
     .min(1, "Tambahkan minimal satu obat"),
+  payment_method: z.enum(OTC_METHODS, { error: "Pilih cara bayar" }),
 });
 
 // Versi form: tanggal berupa Date
@@ -498,3 +503,84 @@ export const OtcSalePayloadSchema = OtcBase.extend({ date: DATE_ONLY });
 
 export type OtcSaleFormType = z.infer<typeof OtcSaleFormSchema>;
 export type OtcSalePayload = z.infer<typeof OtcSalePayloadSchema>;
+
+// ===========================
+// ===== PELUNASAN & KAS =====
+// ===========================
+export const SETTLE_METHODS = ["BPJS", "Cash", "Transfer", "QRIS"] as const;
+export const CASH_KINDS = ["Saldo Awal", "Setor", "Keluar"] as const;
+
+// piutang = nominal tagihan (pembayaran awal) - seluruh pembayaran (awal + pelunasan)
+export const initialPayment = (v: VisitRow) =>
+  v.visit_payment?.find((p) => !p.is_settlement);
+export const settlements = (v: VisitRow) =>
+  (v.visit_payment ?? []).filter((p) => p.is_settlement);
+export const paidTotal = (v: VisitRow) =>
+  (v.visit_payment ?? []).reduce((s, p) => s + p.amount, 0);
+export const outstanding = (v: VisitRow) => {
+  const i = initialPayment(v);
+  return i ? Math.max(i.billed_amount - paidTotal(v), 0) : 0;
+};
+
+const SettleBase = z.object({
+  amount: z
+    .number({ error: "Isi nominal" })
+    .positive("Nominal harus lebih dari 0"),
+  payment_method: z.enum(SETTLE_METHODS, { error: "Pilih cara bayar" }),
+  shift: z.enum(SHIFTS, { error: "Pilih shift" }),
+  staff_id: z.string().min(1, "Pilih petugas"),
+});
+export const SettlementFormSchema = SettleBase.extend({
+  date: z.date({ error: "Pilih tanggal" }),
+});
+export const SettlementPayloadSchema = SettleBase.extend({ date: DATE_ONLY });
+export type SettlementFormType = z.infer<typeof SettlementFormSchema>;
+export type SettlementPayload = z.infer<typeof SettlementPayloadSchema>;
+
+function checkCash(
+  v: { kind: string; amount: number; note: string },
+  ctx: IssueCtx,
+) {
+  if (v.kind === "Keluar" && !v.note) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["note"],
+      message: "Isi keterangan pengeluaran",
+    });
+  }
+  if (v.kind !== "Saldo Awal" && v.amount <= 0) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["amount"],
+      message: "Nominal harus lebih dari 0",
+    });
+  }
+}
+const CashBase = z.object({
+  kind: z.enum(CASH_KINDS, { error: "Pilih jenis" }),
+  amount: z
+    .number({ error: "Isi nominal" })
+    .min(0, "Nominal tidak boleh negatif"),
+  note: z.string().trim().max(200, "Maksimal 200 karakter"),
+  shift: z.enum(SHIFTS, { error: "Pilih shift" }),
+  staff_id: z.string().min(1, "Pilih petugas"),
+});
+export const CashFormSchema = CashBase.extend({
+  date: z.date({ error: "Pilih tanggal" }),
+}).superRefine(checkCash);
+export const CashPayloadSchema = CashBase.extend({
+  date: DATE_ONLY,
+}).superRefine(checkCash);
+export type CashFormType = z.infer<typeof CashFormSchema>;
+export type CashPayload = z.infer<typeof CashPayloadSchema>;
+
+export type CashEntryRow = {
+  id: string;
+  entry_date: string;
+  entry_shift: string;
+  kind: string;
+  amount: number;
+  note: string | null;
+  staff_id: string | null;
+  staff: { name: string } | null;
+};

@@ -42,6 +42,7 @@ import {
   VisitFilterBar,
   VisitFilters,
 } from "./filters-visit";
+import SettlementDialog from "./settlement-dialog";
 
 type VisitsClientProps = {
   patients: PatientOption[];
@@ -79,6 +80,7 @@ export default function VisitsClient({
     visit: VisitRow;
     rx: VisitPrescriptionRow;
   } | null>(null);
+  const [settleVisit, setSettleVisit] = useState<VisitRow | null>(null);
 
   const [deleteVisitTarget, setDeleteVisitTarget] = useState<VisitRow | null>(
     null,
@@ -153,6 +155,9 @@ export default function VisitsClient({
         setRxEdit(null);
         setRxPaymentOnly(true);
         setIsRxForm(true);
+        break;
+      case "settle-payment":
+        setSettleVisit(visit);
         break;
     }
   };
@@ -339,6 +344,14 @@ export default function VisitsClient({
         onOpenChange={(open) => {
           if (!open) setDeleteOtc(null);
         }}
+      />
+
+      <SettlementDialog
+        visit={settleVisit}
+        onOpenChange={(o) => {
+          if (!o) setSettleVisit(null);
+        }}
+        staff={staff}
       />
     </main>
   );

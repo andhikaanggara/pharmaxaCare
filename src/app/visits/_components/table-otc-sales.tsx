@@ -65,7 +65,7 @@ export function OtcSalesTable({ sales, onEdit, onDelete }: OtcSalesTableProps) {
                   {format(parseISO(sale.sale_date), "d MMM yyyy", {
                     locale: idLocale,
                   })}{" "}
-                  · {sale.sale_shift}
+                  · {sale.sale_shift} · {sale.payment_method}
                 </p>
               </TableCell>
 

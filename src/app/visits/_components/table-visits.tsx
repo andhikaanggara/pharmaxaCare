@@ -34,7 +34,8 @@ export type VisitActionType =
   | "payment"
   | "edit-payment"
   | "edit-visit"
-  | "delete-visit";
+  | "delete-visit"
+  | "settle-payment";
 
 type VisitsTableProps = {
   visits: VisitRow[];
@@ -121,6 +122,7 @@ export function VisitsTable({
                     visit={visit}
                     onOpen={() => onAction("payment", visit)}
                     onEdit={() => onAction("edit-payment", visit)}
+                    onSettle={() => onAction("settle-payment", visit)}
                   />
                 </TableCell>
 

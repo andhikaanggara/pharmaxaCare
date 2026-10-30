@@ -49,14 +49,6 @@ export type CashOpeningRow = {
 /** Satu mutasi uang tunai (masuk atau keluar) pada tanggal + shift tertentu. */
 export type CashFlowRow = { date: string; shift: string; amount: number };
 
-/** Yang dikirim ke renderKeuangan. */
-export type CashSummary = {
-  /** Saldo Awal untuk laporan ini. null = belum bisa dihitung. */
-  openingBalance: number | null;
-  expenses: CashEntryRow[]; // Saldo Keluar
-  deposits: CashEntryRow[]; // Saldo Setor
-};
-
 // ----- Rumus -----
 
 /** Nomor urut sebuah shift: makin besar = makin baru. NaN bila tidak valid. */

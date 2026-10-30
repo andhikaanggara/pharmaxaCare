@@ -11,7 +11,8 @@ import {
   type VisitFilters,
 } from "@/app/visits/_components/filters-visit";
 import type { DutyEntry } from "@/app/visits/data";
-import { CashSummary } from "@/lib/cash-shared";
+import { outstanding } from "@/app/visits/schema";
+import type { CashSummary } from "@/app/dashboard/cash-data";
 
 const CLINIC_NAME = "Klinik Pratama Rahayu Medika";
 
@@ -152,13 +153,6 @@ const formatDateRangeLabel = (filters: VisitFilters) => {
     return `${formatLongDate(from)} - ${formatLongDate(to)}`;
   }
   return formatLongDate(to ?? from ?? new Date());
-};
-
-export const getSingleReportDate = (filters: VisitFilters) => {
-  const { from, to } = filters.range ?? {};
-  if (!from) return null;
-  if (to && !isSameDay(from, to)) return null;
-  return format(from, "yyyy-MM-dd");
 };
 
 const mergeVisits = (poolVisits: VisitRow[], currentVisits: VisitRow[]) => [
@@ -496,72 +490,16 @@ export function renderFarmasi(
 
 export function renderKeuangan(
   visits: VisitRow[],
-  sales: OtcSaleRow[],
   filters: VisitFilters,
-  poolVisits: VisitRow[] = [],
-  cash: CashSummary | null = null,
+  poolVisits: VisitRow[],
+  cash: CashSummary,
 ) {
-  const paymentEntries = mergeVisits(poolVisits, visits)
-    .flatMap((visit) =>
-      (visit.visit_payment ?? []).map((payment) => ({ visit, payment })),
-    )
-    .filter(
-      ({ payment }) =>
-        inDateRange(payment.payment_date, filters) &&
-        (filters.shift === "all" || payment.payment_shift === filters.shift),
-    );
-
-  const paymentsByMethod = (method: string) =>
-    paymentEntries.filter(({ payment }) => payment.payment_method === method);
-
-  const totalPaid = (entries: typeof paymentEntries) =>
-    sumNumbers(entries.map(({ payment }) => payment.amount));
-  
-  const nonBpjsPayments = paymentEntries.filter(
-    ({ payment }) => payment.payment_method !== "BPJS",
+  const m = cash.methods;
+  const owedVisits = mergeVisits(poolVisits, visits).filter(
+    (v) => outstanding(v) > 0,
   );
-
-  const bpjsPayments = paymentsByMethod("BPJS");
-  const countBpjsByDepartment = (department: string) =>
-    bpjsPayments.filter(({ visit }) => visit.department === department).length;
-
-  const underpaidEntries = paymentEntries.filter(
-    ({ payment }) => payment.billed_amount > payment.amount,
-  );
-  const totalReceivable = sumNumbers(
-    underpaidEntries.map(
-      ({ payment }) => payment.billed_amount - payment.amount,
-    ),
-  );
-  const receivableLines = underpaidEntries.map(
-    ({ visit, payment }) =>
-      `${visit.patients?.name ?? "-"} ${formatRupiah(payment.billed_amount - payment.amount)}`,
-  );
-
-  const cashReceived = totalPaid(paymentsByMethod("Cash"));
-  const totalExpenses = sumNumbers(
-    (cash?.expenses ?? []).map((entry) => entry.amount),
-  );
-  const totalDeposits = sumNumbers(
-    (cash?.deposits ?? []).map((entry) => entry.amount),
-  );
-  const openingBalance = cash?.openingBalance ?? null;
-  const closingBalance =
-    openingBalance === null
-      ? null
-      : openingBalance + cashReceived - totalExpenses - totalDeposits;
-  const cashEntryLines = (entries: CashSummary["expenses"]) =>
-    entries.map(
-      (entry, index) =>
-        `${index + 1}. ${entry.description} ${formatRupiah(entry.amount)}`,
-    );
-
-  const pharmacySalesTotal = sumNumbers(sales.map((sale) => sale.amount));
-  const cashierNames =
-    uniqueValues([
-      ...paymentEntries.map(({ payment }) => payment.cashier?.name),
-      ...sales.map((sale) => sale.staff?.name),
-    ]).join(", ") || "-";
+  const balance = (amount: number) =>
+    cash.configured ? formatRupiah(amount) : "";
 
   const text = [
     "LAPORAN KEUANGAN HARIAN",
@@ -570,59 +508,40 @@ export function renderKeuangan(
       "Shift",
       filters.shift === "all" ? "Semua shift" : filters.shift,
     ),
-    formatKeyValue("Petugas", cashierNames),
-    openingBalance === null
-      ? "Saldo Awal :"
-      : formatKeyValue("Saldo Awal", formatRupiah(openingBalance)),
-    formatKeyValue("Saldo Masuk", formatRupiah(totalPaid(nonBpjsPayments))),
-    formatKeyValue("- Cash", formatRupiah(totalPaid(paymentsByMethod("Cash")))),
-    formatKeyValue("- Qris", formatRupiah(totalPaid(paymentsByMethod("QRIS")))),
+    formatKeyValue("Petugas", cash.staff.join(", ") || "-"),
+    formatKeyValue("Saldo Awal", balance(cash.opening)),
+    // BPJS tidak dihitung sebagai uang masuk, sesuai perubahanmu sebelumnya
     formatKeyValue(
-      "- Transfer",
-      formatRupiah(totalPaid(paymentsByMethod("Transfer"))),
+      "Saldo Masuk",
+      formatRupiah(sumNumbers([m.Cash, m.QRIS, m.Transfer])),
     ),
-    `${formatKeyValue("- BPJS", formatRupiah(totalPaid(bpjsPayments)))} ( ${countBpjsByDepartment("Umum")} Umum, ${countBpjsByDepartment("Gigi")} Gigi )`,
-    ...(pharmacySalesTotal
-      ? [
-          formatKeyValue(
-            "- Penjualan Apotek (cara bayar belum dicatat)",
-            formatRupiah(pharmacySalesTotal),
-          ),
-        ]
-      : []),
-    cash
-      ? formatKeyValue("Saldo Keluar", formatRupiah(totalExpenses))
-      : "Saldo Keluar :",
-    ...cashEntryLines(cash?.expenses ?? []),
-    cash
-      ? formatKeyValue("Saldo Setor", formatRupiah(totalDeposits))
-      : "Saldo Setor :",
-    ...cashEntryLines(cash?.deposits ?? []),
-    closingBalance === null
-      ? "Saldo Sisa :"
-      : formatKeyValue("Saldo Sisa", formatRupiah(closingBalance)),
-    formatKeyValue("Piutang", formatRupiah(totalReceivable)),
-    ...numberedList(receivableLines),
+    formatKeyValue("- Cash", formatRupiah(m.Cash)),
+    formatKeyValue("- Qris", formatRupiah(m.QRIS)),
+    formatKeyValue("- Transfer", formatRupiah(m.Transfer)),
+    `${formatKeyValue("- BPJS", formatRupiah(m.BPJS))} ( ${cash.bpjsDept.Umum} Umum, ${cash.bpjsDept.Gigi} Gigi )`,
+    formatKeyValue("Saldo Keluar", formatRupiah(cash.keluar)),
+    ...cash.keluarList.map((k) => `- ${k.note} : ${formatRupiah(k.amount)}`),
+    formatKeyValue("Saldo Setor", formatRupiah(cash.setor)),
+    formatKeyValue("Saldo Sisa", balance(cash.closing)),
+    formatKeyValue(
+      "Piutang",
+      formatRupiah(sumNumbers(owedVisits.map(outstanding))),
+    ),
+    ...numberedList(
+      owedVisits.map(
+        (v) => `${v.patients?.name ?? "-"} ${formatRupiah(outstanding(v))}`,
+      ),
+    ),
   ].join("\n");
 
-  const warnings = [
-    ...(!cash
-      ? [
-          "Saldo kas tidak dihitung otomatis (pilih tepat satu tanggal). Isi Saldo Awal, Keluar, Setor, dan Sisa manual sebelum dikirim",
-        ]
-      : openingBalance === null
-        ? [
-            "Saldo Awal belum bisa dihitung karena titik awal saldo belum ada untuk tanggal ini (isi Saldo Awal dan Sisa manual)",
-          ]
-        : []),
-    ...(pharmacySalesTotal
-      ? [
-          `Penjualan apotek ${formatRupiah(pharmacySalesTotal)} belum masuk rincian karena belum ada cara bayar`,
-        ]
-      : []),
-  ];
-
-  return { text, warnings };
+  return {
+    text,
+    warnings: cash.configured
+      ? []
+      : [
+          "Saldo awal belum diatur untuk periode ini (isi lewat tombol Catat Kas)",
+        ],
+  };
 }
 
 const CARE_PERLU_MAKAN = ["Rawat Inap", "Home Visit"];

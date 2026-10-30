@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { createOtcSale, updateOtcSale } from "../action";
 import {
+  OTC_METHODS,
   OtcSaleFormSchema,
   SHIFTS,
   type OtcSaleFormType,
@@ -40,6 +41,7 @@ import {
   type OtcSaleRow,
   type StaffOption,
 } from "../schema";
+import { currentShift } from "@/lib/shift";
 
 type OtcSaleDialogProps = {
   open: boolean;
@@ -51,11 +53,12 @@ type OtcSaleDialogProps = {
 const getValues = (
   sale?: OtcSaleRow | null,
 ): DefaultValues<OtcSaleFormType> => ({
-  date: sale ? parseISO(sale.sale_date) : new Date(),
-  shift: SHIFTS.find((s) => s === sale?.sale_shift),
+  date: sale ? parseISO(sale.sale_date) : currentShift().date,
+  shift: sale ? SHIFTS.find((s) => s === sale.sale_shift) : currentShift().shift,
   staff_id: sale?.staff_id ?? "",
   amount: sale?.amount,
   drugs: sale ? sale.drug_names.map((name) => ({ name })) : [{ name: "" }],
+  payment_method: OTC_METHODS.find((m) => m === sale?.payment_method) ?? "Cash",
 });
 
 export default function OtcSaleDialog({
@@ -87,6 +90,7 @@ export default function OtcSaleDialog({
         staff_id: data.staff_id,
         amount: data.amount,
         drugs: data.drugs,
+        payment_method: data.payment_method,
       };
 
       const res = editData
@@ -219,6 +223,32 @@ export default function OtcSaleDialog({
                 )}
               />
             </div>
+
+            {/* Cara Bayar */}
+            <Controller
+              name="payment_method"
+              control={control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>Cara Bayar</FieldLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id={field.name} className="w-full">
+                      <SelectValue placeholder="Pilih cara bayar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {OTC_METHODS.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
 
             {/* Nama obat (satu atau lebih) */}
             <div className="space-y-2">

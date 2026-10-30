@@ -28,7 +28,11 @@ export function TreatmentPopoverCard({
 }) {
   const [open, setOpen] = useState(false);
 
-  if (!visit.care) {
+  if (
+    !visit.nurse_staff_id &&
+    visit.care !== "Rawat Inap" &&
+    visit.care !== "Home Visit"
+  ) {
     return (
       <button
         type="button"
@@ -62,7 +66,7 @@ export function TreatmentPopoverCard({
           className="text-sm underline-offset-4 hover:underline"
         >
           {children ??
-            (rows.length > 0 ? `${rows.length} tindakan` : "Tanpa tindakan")}
+            (rows.length > 0 ? `${rows.length} tindakan` : "0 tindakan")}
         </button>
       </PopoverTrigger>
 
