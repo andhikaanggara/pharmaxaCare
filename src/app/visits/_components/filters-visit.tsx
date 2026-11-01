@@ -1,6 +1,6 @@
 "use client";
 
-import { endOfDay, format, isSameDay, startOfDay } from "date-fns";
+import { endOfDay, format, isSameDay, parseISO, startOfDay } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 import { CalendarIcon, FilterIcon } from "lucide-react";
@@ -62,7 +62,10 @@ const fmt = (d: Date) => format(d, "d MMM yyyy", { locale: idLocale });
 // ================
 // === function ===
 // ================
-export const toDate = (s: string) => new Date(s);
+export const toDate = (s: string) =>
+  !s.includes("T")
+    ? parseISO(s)
+    : new Date(/(Z|[+-]\d{2}:?\d{2})$/.test(s) ? s : `${s}Z`);
 
 export function filterVisits(visits: VisitRow[], f: VisitFilters): VisitRow[] {
   const from = f.range?.from && startOfDay(f.range.from);

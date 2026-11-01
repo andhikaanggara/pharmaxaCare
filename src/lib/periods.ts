@@ -23,8 +23,12 @@ export const wibDay = (ts: string) => {
 };
 
 // awal hari WIB, dalam format timestamp UTC tanpa zona (cocok dengan admission_date)
-export const wibStart = (day: string) =>
-  new Date(`${day}T00:00:00+07:00`).toISOString().slice(0, 19);
+export const wibStart = (day: string) => day;
+
+export const toWibYmd = (d: Date) =>
+  new Date(d.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
+
+export const parseDay = (s: string) => parseISO(s.slice(0, 10));
 
 /** Bulan kalender dari hari yang dipilih */
 export function monthRange(day: string) {

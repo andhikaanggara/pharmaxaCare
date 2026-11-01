@@ -60,7 +60,7 @@ export async function getVisitRows(): Promise<VisitRow[]> {
   const { data, error } = await supabase
     .from("visits")
     .select(VISIT_SELECT)
-    .order("admission_date", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(50);
 
   if (error) throw new Error(error.message);

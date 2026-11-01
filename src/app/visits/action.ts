@@ -24,6 +24,7 @@ import {
   SettlementPayload,
   SettlementPayloadSchema,
 } from "./schema";
+import { toWibYmd } from "@/lib/periods";
 
 const PATH = "/dashboard/visits";
 const IdListSchema = z.array(z.string().uuid()).min(1);
@@ -63,7 +64,7 @@ export async function createVisit(input: VisitFormType) {
         patient_id: patientId,
         department: values.department,
         guarantor: values.guarantor,
-        admission_date: values.admission_date.toISOString(),
+        admission_date: toWibYmd(values.admission_date),
         admission_shift: values.admission_shift,
         is_demo: isGuest,
       })

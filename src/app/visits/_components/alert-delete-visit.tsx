@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteVisit } from "../action";
 import type { VisitRow } from "../schema";
+import { parseDay } from "@/lib/periods";
 
 type DeleteVisitDialogProps = {
   visit: VisitRow | null;
@@ -63,9 +64,13 @@ export default function DeleteVisitDialog({
           <AlertDialogDescription>
             {visit?.patients?.name ?? "Pasien"}
             {visit
-              ? ` | ${format(new Date(visit.admission_date), "d MMM yyyy", {
-                  locale: idLocale,
-                })}`
+              ? ` | ${format(
+                  new Date(parseDay(visit.admission_date)),
+                  "d MMM yyyy",
+                  {
+                    locale: idLocale,
+                  },
+                )}`
               : ""}
             . Data berikut akan dihapus permanen dan tidak bisa dikembalikan:
           </AlertDialogDescription>

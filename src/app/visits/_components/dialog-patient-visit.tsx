@@ -37,6 +37,7 @@ import { createVisit, updateVisit } from "../action";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { parseDay } from "@/lib/periods";
 
 type PatientVisitDialogProps = {
   open: boolean;
@@ -51,7 +52,7 @@ const getFormValues = (visit?: VisitRow | null): VisitFormType =>
         isNewPatient: false,
         newPatientName: "",
         patientId: visit.patients?.id ?? "",
-        admission_date: new Date(visit.admission_date),
+        admission_date: parseDay(visit.admission_date),
         admission_shift:
           visit.admission_shift as VisitFormType["admission_shift"],
         department: visit.department,

@@ -48,6 +48,7 @@ import {
   type TreatmentOption,
   type VisitRow,
 } from "../schema";
+import { parseDay } from "@/lib/periods";
 
 type TreatmentDialogProps = {
   open: boolean;
@@ -64,7 +65,7 @@ type TreatmentFieldPath = `groups.${number}.treatments.${number}.treatment_id`;
 const emptyGroup = (visit?: VisitRow | null): GroupValues => ({
   operator_staff_id: "",
   assistant_staff_id: "",
-  treatment_date: visit ? new Date(visit.admission_date) : new Date(),
+  treatment_date: visit ? new Date(parseDay(visit.admission_date)) : new Date(),
   treatment_shift: SHIFTS.find((s) => s === visit?.admission_shift) ?? "Pagi",
   treatments: [{ treatment_id: "" }],
 });
