@@ -26,7 +26,12 @@ export const wibDay = (ts: string) => {
 export const wibStart = (day: string) => day;
 
 export const toWibYmd = (d: Date) =>
-  new Date(d.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
 
 export const parseDay = (s: string) => parseISO(s.slice(0, 10));
 

@@ -67,34 +67,52 @@ export const toDate = (s: string) =>
     ? parseISO(s)
     : new Date(/(Z|[+-]\d{2}:?\d{2})$/.test(s) ? s : `${s}Z`);
 
-export function filterVisits(visits: VisitRow[], f: VisitFilters): VisitRow[] {
-  const from = f.range?.from && startOfDay(f.range.from);
-  const to = f.range?.to
-    ? endOfDay(f.range.to)
-    : f.range?.from && endOfDay(f.range.from);
+// export function filterVisits(visits: VisitRow[], f: VisitFilters): VisitRow[] {
+//   const from = f.range?.from && startOfDay(f.range.from);
+//   const to = f.range?.to
+//     ? endOfDay(f.range.to)
+//     : f.range?.from && endOfDay(f.range.from);
 
-  return visits.filter((v) => {
-    if (from && to) {
-      const d = toDate(v.admission_date);
-      if (d < from || d > to) return false;
-    }
-    if (f.shift !== "all" && v.admission_shift !== f.shift) return false;
-    if (f.department.length && !f.department.includes(v.department))
-      return false;
-    if (f.guarantor.length && !f.guarantor.includes(v.guarantor)) return false;
-    if (f.care.length && !(v.care && f.care.includes(v.care))) return false;
-    return true;
-  });
-}
+//   return visits.filter((v) => {
+//     if (from && to) {
+//       const d = toDate(v.admission_date);
+//       if (d < from || d > to) return false;
+//     }
+//     if (f.shift !== "all" && v.admission_shift !== f.shift) return false;
+//     if (f.department.length && !f.department.includes(v.department))
+//       return false;
+//     if (f.guarantor.length && !f.guarantor.includes(v.guarantor)) return false;
+//     if (f.care.length && !(v.care && f.care.includes(v.care))) return false;
+//     return true;
+//   });
+// }
+
+export const filterVisits = (visits: VisitRow[], f: VisitFilters) =>
+  visits.filter(
+    (v) =>
+      inDateRange(v.admission_date, f) &&
+      (f.shift === "all" || v.admission_shift === f.shift) &&
+      (!f.department.length || f.department.includes(v.department)) &&
+      (!f.guarantor.length || f.guarantor.includes(v.guarantor)) &&
+      (!f.care.length || (!!v.care && f.care.includes(v.care))),
+  );
+
+const ymd = (d: Date) => format(d, "yyyy-MM-dd");
 
 export const inDateRange = (date: string, f: VisitFilters) => {
   if (!f.range?.from) return true;
-  const d = date.slice(0, 10);
-  return (
-    d >= format(f.range.from, "yyyy-MM-dd") &&
-    d <= format(f.range.to ?? f.range.from, "yyyy-MM-dd")
-  );
+  const d = date.slice(0, 10); // "2026-11-01"
+  return d >= ymd(f.range.from) && d <= ymd(f.range.to ?? f.range.from);
 };
+
+// export const inDateRange = (date: string, f: VisitFilters) => {
+//   if (!f.range?.from) return true;
+//   const d = date.slice(0, 10);
+//   return (
+//     d >= format(f.range.from, "yyyy-MM-dd") &&
+//     d <= format(f.range.to ?? f.range.from, "yyyy-MM-dd")
+//   );
+// };
 
 export const filterOtcSales = (sales: OtcSaleRow[], f: VisitFilters) =>
   sales.filter(

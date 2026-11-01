@@ -32,9 +32,11 @@ const IdListSchema = z.array(z.string().uuid()).min(1);
 export async function createVisit(input: VisitFormType) {
   return authAction(async ({ supabase, isGuest }) => {
     const parsed = VisitFormSchema.safeParse(input);
+
     if (!parsed.success) {
       throw new Error(parsed.error.issues[0]?.message ?? "Data tidak valid");
     }
+
     const values = parsed.data;
 
     let patientId = values.patientId;
@@ -72,7 +74,6 @@ export async function createVisit(input: VisitFormType) {
       .single();
 
     if (error) {
-      // Hapus pasien yang baru dibuat supaya tidak jadi data yatim
       if (createdPatientId) {
         await supabase.from("patients").delete().eq("id", createdPatientId);
       }
@@ -103,7 +104,7 @@ export async function updateVisit(id: string, input: VisitFormType) {
         patient_id: values.patientId,
         department: values.department,
         guarantor: values.guarantor,
-        admission_date: values.admission_date.toISOString(),
+        admission_date: toWibYmd(values.admission_date),
         admission_shift: values.admission_shift,
         // registration_staff_id dan is_demo sengaja tidak diubah
       })
