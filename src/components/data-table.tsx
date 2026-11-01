@@ -41,14 +41,9 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div
-      className={cn(
-        "overflow-x-auto overflow-hidden rounded-md border sticky top-0 z-10 ",
-        hideOnMobile && "hidden md:block",
-      )}
-    >
+    <div className="overflow-y-auto relative pb-6">
       <Table>
-        <TableHeader className="sticky top-0 z-10">
+        <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               <TableHead className="font-semibold px-4 w-10">No</TableHead>
