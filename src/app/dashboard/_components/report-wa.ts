@@ -495,9 +495,6 @@ export function renderKeuangan(
   cash: CashSummary,
 ) {
   const m = cash.methods;
-  const owedVisits = mergeVisits(poolVisits, visits).filter(
-    (v) => outstanding(v) > 0,
-  );
   const balance = (amount: number) =>
     cash.configured ? formatRupiah(amount) : "";
 
@@ -525,12 +522,10 @@ export function renderKeuangan(
     formatKeyValue("Saldo Sisa", balance(cash.closing)),
     formatKeyValue(
       "Piutang",
-      formatRupiah(sumNumbers(owedVisits.map(outstanding))),
+      formatRupiah(sumNumbers(cash.receivables.map((r) => r.amount))),
     ),
     ...numberedList(
-      owedVisits.map(
-        (v) => `${v.patients?.name ?? "-"} ${formatRupiah(outstanding(v))}`,
-      ),
+      cash.receivables.map((r) => `${r.name} ${formatRupiah(r.amount)}`),
     ),
   ].join("\n");
 

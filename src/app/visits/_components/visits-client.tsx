@@ -39,10 +39,12 @@ import {
   filterOtcSales,
   filterVisits,
   getDefaultFilters,
+  useRangeNavigation,
   VisitFilterBar,
   VisitFilters,
 } from "./filters-visit";
 import SettlementDialog from "./settlement-dialog";
+import { parseISO } from "date-fns";
 
 type VisitsClientProps = {
   patients: PatientOption[];
@@ -52,6 +54,7 @@ type VisitsClientProps = {
   treatments: TreatmentOption[];
   inpatients: VisitRow[];
   otcSales: OtcSaleRow[];
+  range: { from: string; to: string };
 };
 
 export default function VisitsClient({
@@ -62,6 +65,7 @@ export default function VisitsClient({
   treatments,
   inpatients,
   otcSales,
+  range,
 }: VisitsClientProps) {
   const [isFormVisit, setIsFormVisit] = useState(false);
   const [editVisit, setEditVisit] = useState<VisitRow | null>(null);
@@ -85,7 +89,11 @@ export default function VisitsClient({
   const [deleteVisitTarget, setDeleteVisitTarget] = useState<VisitRow | null>(
     null,
   );
-  const [filters, setFilters] = useState<VisitFilters>(getDefaultFilters);
+  const navigate = useRangeNavigation(range);
+  const [filters, setFilters] = useState<VisitFilters>(() => ({
+    ...getDefaultFilters(),
+    range: { from: parseISO(range.from), to: parseISO(range.to) },
+  }));
 
   const [rxPaymentOnly, setRxPaymentOnly] = useState(false);
 
@@ -217,7 +225,13 @@ export default function VisitsClient({
           />
         </div>
         <div className="flex gap-2 w-full md:w-auto">
-          <VisitFilterBar value={filters} onChange={setFilters} />
+          <VisitFilterBar
+            value={filters}
+            onChange={(f) => {
+              setFilters(f);
+              navigate(f.range);
+            }}
+          />
         </div>
       </section>
 

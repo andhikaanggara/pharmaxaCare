@@ -5,6 +5,13 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const parts = (day: string) =>
   day.split("-").map(Number) as [number, number, number];
 
+export function rangeFromParams(sp: { from?: string; to?: string }) {
+  const ymd = /^\d{4}-\d{2}-\d{2}$/;
+  const from = ymd.test(sp.from ?? "") ? sp.from! : todayYmd();
+  const to = ymd.test(sp.to ?? "") && sp.to! >= from ? sp.to! : from;
+  return { from, to };
+}
+
 // "yyyy-MM-dd" dengan limpahan bulan/hari dirapikan (bulan 13 = Januari tahun depan)
 export const norm = (y: number, m: number, d: number) => {
   const t = new Date(Date.UTC(y, m - 1, d));

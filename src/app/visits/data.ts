@@ -12,6 +12,7 @@ import type {
   VisitRow,
 } from "./schema";
 import { format, subDays } from "date-fns";
+import { fetchAll } from "@/lib/fetch-all";
 
 const VISIT_SELECT = `
       id, department, guarantor, care, room, diagnoses_id,
@@ -55,16 +56,21 @@ const VISIT_SELECT = `
       )
 `;
 
-export async function getVisitRows(): Promise<VisitRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("visits")
-    .select(VISIT_SELECT)
-    .order("created_at", { ascending: false })
-    .limit(50);
+type DateRangeYmd = { from: string; to: string };
 
-  if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as VisitRow[];
+export async function getVisitRows(range: DateRangeYmd): Promise<VisitRow[]> {
+  const supabase = await createClient();
+  return fetchAll<VisitRow>((a, b) =>
+    supabase
+      .from("visits")
+      .select(VISIT_SELECT)
+      .gte("admission_date", range.from)
+      .lte("admission_date", range.to)
+      .order("admission_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range(a, b),
+  );
 }
 
 export async function getVisits(): Promise<VisitType[]> {
@@ -136,19 +142,21 @@ export async function getInpatientRows(): Promise<VisitRow[]> {
 // ==================================
 // ===== PENJUALAN BEBAS APOTEK =====
 // ==================================
-export async function getOtcSales(): Promise<OtcSaleRow[]> {
+export async function getOtcSales(range: DateRangeYmd): Promise<OtcSaleRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("otc_sales")
-    .select(
-      "id, sale_date, sale_shift, staff_id, amount, drug_names, staff:staff!staff_id ( name ), payment_method",
-    )
-    .order("sale_date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(30);
-
-  if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as OtcSaleRow[];
+  return fetchAll<OtcSaleRow>((a, b) =>
+    supabase
+      .from("otc_sales")
+      .select(
+        "id, sale_date, sale_shift, staff_id, amount, payment_method, drug_names, staff:staff!staff_id ( name )",
+      )
+      .gte("sale_date", range.from)
+      .lte("sale_date", range.to)
+      .order("sale_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range(a, b),
+  );
 }
 
 export type DutyEntry = {

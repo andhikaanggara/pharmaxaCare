@@ -28,6 +28,7 @@ type SearchableSelectProps<T> = {
   onCreate?: (text: string) => void;
   createLabel?: (text: string) => string;
   clearable?: boolean;
+  buttonAdd?: boolean;
 };
 
 export function SearchableSelect<T>({
@@ -46,6 +47,7 @@ export function SearchableSelect<T>({
   onCreate,
   createLabel,
   clearable,
+  buttonAdd,
 }: SearchableSelectProps<T>) {
   const [query, setQuery] = React.useState("");
   const selected = items.find((item) => getItemValue(item) === value) ?? null;
@@ -77,27 +79,7 @@ export function SearchableSelect<T>({
         showClear={clearable}
       />
       <ComboboxContent>
-        <ComboboxEmpty className="flex-col items-center gap-2">
-          {canCreate ? (
-            <>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="max-w-full"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => onCreate?.(text)}
-              >
-                <PlusIcon className="size-4 shrink-0" />
-                <span className="truncate">
-                  {createLabel ? createLabel(text) : `Tambah "${text}"`}
-                </span>
-              </Button>
-            </>
-          ) : (
-            emptyText
-          )}
-        </ComboboxEmpty>
+        <ComboboxEmpty className="flex-col items-center gap-2"></ComboboxEmpty>
         <ComboboxList>
           {(item: T) => (
             <ComboboxItem key={getItemValue(item)} value={item}>
@@ -105,6 +87,23 @@ export function SearchableSelect<T>({
             </ComboboxItem>
           )}
         </ComboboxList>
+        {buttonAdd && (
+          <ComboboxList className="flex mb-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="max-w-full mx-auto"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onCreate?.(text)}
+            >
+              <PlusIcon className="size-4 shrink-0" />
+              <span className="truncate">
+                {createLabel ? createLabel(text) : `Tambah "${text}"`}
+              </span>
+            </Button>
+          </ComboboxList>
+        )}
       </ComboboxContent>
     </Combobox>
   );

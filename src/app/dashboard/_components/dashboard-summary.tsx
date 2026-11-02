@@ -47,6 +47,7 @@ import {
   filterOtcSales,
   filterVisits,
   getDefaultFilters,
+  useRangeNavigation,
   VisitFilterBar,
   VisitFilters,
 } from "@/app/visits/_components/filters-visit";
@@ -72,7 +73,7 @@ import {
 } from "@/lib/periods";
 import { buildMonthlyCharts } from "./dashboard-data";
 import type { MonthlyChartData } from "../data";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { CashLedgerDialog } from "./cash-ledger-dialog";
 import { toast } from "sonner";
 import { reportSlots } from "@/lib/cash";
@@ -82,6 +83,7 @@ import type {
   CashFormType,
   StaffOption,
 } from "@/app/visits/schema";
+import { currentShift } from "@/lib/shift";
 
 // state dan komponen filter yang sudah ada
 
@@ -101,6 +103,7 @@ export default function DashboardSummary({
   periodStart,
   cashEntries,
   staff,
+  range,
 }: {
   visits: VisitRow[];
   otcSales: OtcSaleRow[];
@@ -111,14 +114,19 @@ export default function DashboardSummary({
   periodStart: string;
   cashEntries: CashEntryRow[];
   staff: StaffOption[];
+  range: { from: string; to: string };
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
   const [pending, startTransition] = useTransition();
-  const [filters, setFilters] = useState<VisitFilters>(getDefaultFilters);
   const [role, setRole] = useState("all");
   const [cashOpen, setCashOpen] = useState(false);
+  const navigate = useRangeNavigation(range);
+  const [filters, setFilters] = useState<VisitFilters>(() => ({
+    ...getDefaultFilters(currentShift().shift), // dashboard tetap default shift saat ini
+    range: { from: parseISO(range.from), to: parseISO(range.to) },
+  }));
 
   const [cashKind, setCashKind] = useState<CashFormType["kind"]>("Setor");
 
@@ -253,7 +261,13 @@ export default function DashboardSummary({
           Ringkasan Dashboard
         </h1>
         <div className="flex flex-wrap gap-2">
-          <VisitFilterBar value={filters} onChange={setFilters} />
+          <VisitFilterBar
+            value={filters}
+            onChange={(f) => {
+              setFilters(f);
+              navigate(f.range);
+            }}
+          />
           <Button variant="outline" onClick={() => setCashOpen(true)}>
             <Wallet className="size-4" />
             Catat Kas

@@ -6,16 +6,22 @@ import {
   getVisitRows,
 } from "@/app/visits/data";
 import DashboardSummary from "./_components/dashboard-summary";
-import { payrollPeriod, todayYmd } from "@/lib/periods";
+import { payrollPeriod, rangeFromParams, todayYmd } from "@/lib/periods";
 import { getMonthlyChartData, getStaffPerformance } from "./data";
 import { getCashEntries } from "./cash-data";
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; period?: string }>;
+  searchParams: Promise<{
+    month?: string;
+    period?: string;
+    from?: string;
+    to?: string;
+  }>;
 }) {
   const sp = await searchParams;
+  const range = rangeFromParams(sp);
   const today = todayYmd();
   const monthDay = /^\d{4}-(0[1-9]|1[0-2])$/.test(sp.month ?? "")
     ? `${sp.month}-01`
@@ -34,8 +40,8 @@ export default async function DashboardPage({
     cashEntries,
     staff,
   ] = await Promise.all([
-    getVisitRows(),
-    getOtcSales(),
+    getVisitRows(range),
+    getOtcSales(range),
     getInpatientRows(),
     getDutyRoster(),
     getMonthlyChartData(monthDay),
@@ -54,6 +60,7 @@ export default async function DashboardPage({
       periodStart={payrollPeriod(periodDay).start}
       cashEntries={cashEntries}
       staff={staff}
+      range={range}
     />
   );
 }

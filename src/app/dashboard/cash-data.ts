@@ -1,6 +1,6 @@
 "use server";
 
-import { addDays, format, parseISO } from "date-fns";
+import { addDays, addMonths, format, parseISO } from "date-fns";
 import { createClient } from "@/utils/supabase/server";
 import { fetchAll } from "@/lib/fetch-all";
 import {
@@ -28,7 +28,68 @@ export type CashSummary = {
   methods: { Cash: number; QRIS: number; Transfer: number; BPJS: number };
   bpjsDept: { Umum: number; Gigi: number };
   staff: string[];
+  receivables: { name: string; amount: number }[]; // piutang berjalan, tidak terikat rentang laporan
 };
+
+const RECEIVABLE_MONTHS = 12; // pembayaran lebih lama dari ini tidak diperiksa
+
+async function getReceivables(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const since = format(addMonths(new Date(), -RECEIVABLE_MONTHS), "yyyy-MM-dd");
+  const pays = await fetchAll<{
+    visit_id: string | null;
+    billed_amount: number;
+    amount: number;
+    is_settlement: boolean;
+  }>((a, b) =>
+    supabase
+      .from("visit_payments")
+      .select("visit_id, billed_amount, amount, is_settlement")
+      .gte("payment_date", since)
+      .order("id")
+      .range(a, b),
+  );
+
+  // sisa per kunjungan = nominal tagihan (pembayaran awal) - semua pembayaran (awal + pelunasan)
+  const remaining = new Map<string, number>();
+  for (const p of pays) {
+    if (!p.visit_id) continue;
+    const delta =
+      (p.is_settlement ? 0 : Number(p.billed_amount)) - Number(p.amount);
+    remaining.set(p.visit_id, (remaining.get(p.visit_id) ?? 0) + delta);
+  }
+  const owed = [...remaining].filter(([, amount]) => amount > 0);
+  if (!owed.length) return [];
+
+  // nama pasien hanya untuk kunjungan yang masih berpiutang
+  const ids = owed.map(([id]) => id);
+  const info = new Map<string, { name: string; date: string }>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data, error } = await supabase
+      .from("visits")
+      .select("id, admission_date, patients ( name )")
+      .in("id", ids.slice(i, i + 100));
+    if (error) throw new Error(error.message);
+    type V = {
+      id: string;
+      admission_date: string;
+      patients: { name: string } | null;
+    };
+    for (const v of (data ?? []) as unknown as V[]) {
+      info.set(v.id, { name: v.patients?.name ?? "-", date: v.admission_date });
+    }
+  }
+
+  return owed
+    .map(([id, amount]) => ({
+      name: info.get(id)?.name ?? "-",
+      amount,
+      date: info.get(id)?.date ?? "",
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date)) // yang paling lama di atas
+    .map(({ name, amount }) => ({ name, amount }));
+}
 
 export async function getCashEntries(days = 45): Promise<CashEntryRow[]> {
   const supabase = await createClient();
@@ -88,70 +149,72 @@ export async function getCashSummary(
     staff: { name: string } | null;
   };
 
-  const [cashPay, cashOtc, entries, rangePay, rangeOtc] = await Promise.all([
-    base
-      ? fetchAll<Pay>((a, b) =>
-          supabase
-            .from("visit_payments")
-            .select("payment_date, payment_shift, amount")
-            .eq("payment_method", "Cash")
-            .gte("payment_date", start)
-            .lt("payment_date", toEnd)
-            .order("id")
-            .range(a, b),
-        )
-      : Promise.resolve([] as Pay[]),
-    base
-      ? fetchAll<Sale>((a, b) =>
-          supabase
-            .from("otc_sales")
-            .select("sale_date, sale_shift, amount")
-            .eq("payment_method", "Cash")
-            .gte("sale_date", start)
-            .lt("sale_date", toEnd)
-            .order("id")
-            .range(a, b),
-        )
-      : Promise.resolve([] as Sale[]),
-    fetchAll<{
-      entry_date: string;
-      entry_shift: string;
-      kind: string;
-      amount: number;
-      note: string | null;
-    }>((a, b) =>
-      supabase
-        .from("cash_entries")
-        .select("entry_date, entry_shift, kind, amount, note")
-        .in("kind", ["Setor", "Keluar"])
-        .gte("entry_date", start)
-        .lte("entry_date", to.date)
-        .order("id")
-        .range(a, b),
-    ),
-    fetchAll<Pay>((a, b) =>
-      supabase
-        .from("visit_payments")
-        .select(
-          "payment_date, payment_shift, payment_method, amount, is_settlement, visits!visit_id ( department ), cashier:staff!cashier_staff_id ( name )",
-        )
-        .gte("payment_date", from.date)
-        .lt("payment_date", toEnd)
-        .order("id")
-        .range(a, b),
-    ),
-    fetchAll<Sale>((a, b) =>
-      supabase
-        .from("otc_sales")
-        .select(
-          "sale_date, sale_shift, payment_method, amount, staff:staff!staff_id ( name )",
-        )
-        .gte("sale_date", from.date)
-        .lt("sale_date", toEnd)
-        .order("id")
-        .range(a, b),
-    ),
-  ]);
+  const [cashPay, cashOtc, entries, rangePay, rangeOtc, receivables] =
+    await Promise.all([
+      base
+        ? fetchAll<Pay>((a, b) =>
+            supabase
+              .from("visit_payments")
+              .select("payment_date, payment_shift, amount")
+              .eq("payment_method", "Cash")
+              .gte("payment_date", start)
+              .lt("payment_date", toEnd)
+              .order("id")
+              .range(a, b),
+          )
+        : Promise.resolve([] as Pay[]),
+      base
+        ? fetchAll<Sale>((a, b) =>
+            supabase
+              .from("otc_sales")
+              .select("sale_date, sale_shift, amount")
+              .eq("payment_method", "Cash")
+              .gte("sale_date", start)
+              .lt("sale_date", toEnd)
+              .order("id")
+              .range(a, b),
+          )
+        : Promise.resolve([] as Sale[]),
+      fetchAll<{
+        entry_date: string;
+        entry_shift: string;
+        kind: string;
+        amount: number;
+        note: string | null;
+      }>((a, b) =>
+        supabase
+          .from("cash_entries")
+          .select("entry_date, entry_shift, kind, amount, note")
+          .in("kind", ["Setor", "Keluar"])
+          .gte("entry_date", start)
+          .lte("entry_date", to.date)
+          .order("id")
+          .range(a, b),
+      ),
+      fetchAll<Pay>((a, b) =>
+        supabase
+          .from("visit_payments")
+          .select(
+            "payment_date, payment_shift, payment_method, amount, is_settlement, visits!visit_id ( department ), cashier:staff!cashier_staff_id ( name )",
+          )
+          .gte("payment_date", from.date)
+          .lt("payment_date", toEnd)
+          .order("id")
+          .range(a, b),
+      ),
+      fetchAll<Sale>((a, b) =>
+        supabase
+          .from("otc_sales")
+          .select(
+            "sale_date, sale_shift, payment_method, amount, staff:staff!staff_id ( name )",
+          )
+          .gte("sale_date", from.date)
+          .lt("sale_date", toEnd)
+          .order("id")
+          .range(a, b),
+      ),
+      getReceivables(supabase),
+    ]);
 
   // 2. saldo berantai (hanya cash)
   const n = (x: number) => Number(x);
@@ -224,5 +287,6 @@ export async function getCashSummary(
       ...pays.map((p) => p.cashier?.name),
       ...sales.map((s) => s.staff?.name),
     ]),
+    receivables,
   };
 }

@@ -203,6 +203,7 @@ export default function PatientVisitDialog({
                     onCreate={isEditMode ? undefined : handleCreatePatient}
                     createLabel={(name) => name}
                     emptyText="No patients found."
+                    buttonAdd={true}
                     renderItem={(p) => (
                       <Item size="xs" className="p-0">
                         <ItemContent>

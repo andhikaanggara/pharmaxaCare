@@ -1,9 +1,10 @@
 "use client";
 
-import { endOfDay, format, isSameDay, parseISO, startOfDay } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 import { CalendarIcon, FilterIcon } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,11 +35,11 @@ export type VisitFilters = {
   care: string[];
 };
 
-export const getDefaultFilters = (): VisitFilters => {
-  const current = currentShift();
+export const getDefaultFilters = (shift: ShiftFilter = "all"): VisitFilters => {
+  const today = currentShift().date;
   return {
-    range: { from: current.date, to: current.date },
-    shift: current.shift,
+    range: { from: today, to: today },
+    shift,
     department: [],
     guarantor: [],
     care: [],
@@ -62,10 +63,6 @@ const fmt = (d: Date) => format(d, "d MMM yyyy", { locale: idLocale });
 // ================
 // === function ===
 // ================
-export const toDate = (s: string) =>
-  !s.includes("T")
-    ? parseISO(s)
-    : new Date(/(Z|[+-]\d{2}:?\d{2})$/.test(s) ? s : `${s}Z`);
 
 // export function filterVisits(visits: VisitRow[], f: VisitFilters): VisitRow[] {
 //   const from = f.range?.from && startOfDay(f.range.from);
@@ -98,6 +95,23 @@ export const filterVisits = (visits: VisitRow[], f: VisitFilters) =>
   );
 
 const ymd = (d: Date) => format(d, "yyyy-MM-dd");
+
+export function useRangeNavigation(current: { from: string; to: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
+
+  return (range: DateRange | undefined) => {
+    if (!range?.from) return;
+    const from = format(range.from, "yyyy-MM-dd");
+    const to = format(range.to ?? range.from, "yyyy-MM-dd");
+    if (from === current.from && to === current.to) return;
+    const q = new URLSearchParams(sp.toString());
+    q.set("from", from);
+    q.set("to", to);
+    router.replace(`${pathname}?${q}`, { scroll: false });
+  };
+}
 
 export const inDateRange = (date: string, f: VisitFilters) => {
   if (!f.range?.from) return true;

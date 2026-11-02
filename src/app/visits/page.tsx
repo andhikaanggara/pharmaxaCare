@@ -10,8 +10,15 @@ import {
   getTreatments,
   getVisitRows,
 } from "./data";
+import { rangeFromParams } from "@/lib/periods";
 
-export default async function VisitsPage() {
+export default async function VisitsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const range = rangeFromParams(await searchParams);
+
   // Auth guard
   const supabase = await createClient();
   const {
@@ -24,12 +31,12 @@ export default async function VisitsPage() {
   const [patients, visits, staff, diagnoses, treatments, inpatients, otcSales] =
     await Promise.all([
       getPatients(),
-      getVisitRows(),
+      getVisitRows(range),
       getStaff(),
       getDiagnoses(),
       getTreatments(),
       getInpatientRows(),
-      getOtcSales(),
+      getOtcSales(range),
     ]);
 
   return (
@@ -41,6 +48,7 @@ export default async function VisitsPage() {
       treatments={treatments}
       inpatients={inpatients}
       otcSales={otcSales}
+      range={range}
     />
   );
 }
