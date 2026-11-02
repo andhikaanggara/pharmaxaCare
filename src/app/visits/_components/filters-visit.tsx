@@ -64,26 +64,6 @@ const fmt = (d: Date) => format(d, "d MMM yyyy", { locale: idLocale });
 // === function ===
 // ================
 
-// export function filterVisits(visits: VisitRow[], f: VisitFilters): VisitRow[] {
-//   const from = f.range?.from && startOfDay(f.range.from);
-//   const to = f.range?.to
-//     ? endOfDay(f.range.to)
-//     : f.range?.from && endOfDay(f.range.from);
-
-//   return visits.filter((v) => {
-//     if (from && to) {
-//       const d = toDate(v.admission_date);
-//       if (d < from || d > to) return false;
-//     }
-//     if (f.shift !== "all" && v.admission_shift !== f.shift) return false;
-//     if (f.department.length && !f.department.includes(v.department))
-//       return false;
-//     if (f.guarantor.length && !f.guarantor.includes(v.guarantor)) return false;
-//     if (f.care.length && !(v.care && f.care.includes(v.care))) return false;
-//     return true;
-//   });
-// }
-
 export const filterVisits = (visits: VisitRow[], f: VisitFilters) =>
   visits.filter(
     (v) =>

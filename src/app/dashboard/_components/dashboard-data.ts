@@ -6,10 +6,7 @@ import {
   type OtcSaleRow,
   type VisitRow,
 } from "@/app/visits/schema";
-import {
-  toDate,
-  type VisitFilters,
-} from "@/app/visits/_components/filters-visit";
+import { type VisitFilters } from "@/app/visits/_components/filters-visit";
 import { rupiah } from "@/app/visits/utils";
 import {
   renderFarmasi,
