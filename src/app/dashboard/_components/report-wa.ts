@@ -19,6 +19,7 @@ const CLINIC_NAME = "Klinik Pratama Rahayu Medika";
 type Shift = (typeof SHIFTS)[number];
 
 const SHIFT_LAPORAN: readonly Shift[] = ["Pagi", "Sore"];
+const SHIFT_LAPORAN_PERAWAT: readonly Shift[] = SHIFTS;
 
 const ROLE_FARMASI = "farmasi";
 const ROLE_APOTEKER = "apoteker";
@@ -371,7 +372,7 @@ export function renderPerawat(
   const allVisits = mergeVisits(poolVisits, visits);
   const umumVisits = visits.filter((visit) => visit.department === "Umum");
 
-  const shiftSections = SHIFT_LAPORAN.flatMap((shift) => {
+  const shiftSections = SHIFT_LAPORAN_PERAWAT.flatMap((shift) => {
     const shiftVisits = umumVisits.filter(
       (visit) => visit.admission_shift === shift,
     );

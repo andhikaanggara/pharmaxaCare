@@ -1,8 +1,12 @@
+// app/visits/data.ts
+
 "use server";
 
-import { PatientOption, VisitTreatmentType, VisitType } from "./schema";
+import { PatientOption } from "./schema";
 import { createClient } from "@/utils/supabase/server";
 import { ROOM_CARES } from "./schema";
+import { format, subDays } from "date-fns";
+import { fetchAll } from "@/lib/fetch-all";
 
 import type {
   DiagnosisOption,
@@ -11,8 +15,6 @@ import type {
   TreatmentOption,
   VisitRow,
 } from "./schema";
-import { format, subDays } from "date-fns";
-import { fetchAll } from "@/lib/fetch-all";
 
 const VISIT_SELECT = `
       id, department, guarantor, care, room, diagnoses_id,
@@ -58,39 +60,14 @@ const VISIT_SELECT = `
 
 type DateRangeYmd = { from: string; to: string };
 
-export async function getVisitRows(range: DateRangeYmd): Promise<VisitRow[]> {
-  const supabase = await createClient();
-  return fetchAll<VisitRow>((a, b) =>
-    supabase
-      .from("visits")
-      .select(VISIT_SELECT)
-      .gte("admission_date", range.from)
-      .lte("admission_date", range.to)
-      .order("admission_date", { ascending: false })
-      .order("created_at", { ascending: false })
-      .order("id")
-      .range(a, b),
-  );
-}
-
-export async function getVisits(): Promise<VisitType[]> {
-  const supabase = await createClient();
-  const { data } = await supabase.from("visits").select();
-  return data || [];
-}
-
-export async function getVisitTreatments(): Promise<VisitTreatmentType[]> {
-  const supabase = await createClient();
-  const { data } = await supabase.from("visit_treatments").select();
-  return data || [];
-}
-
 export async function getPatients(): Promise<PatientOption[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("patients")
     .select("id, name, gender, birth_date, address")
     .order("name");
+
+  if (error) throw new Error(error.message);
   return data ?? [];
 }
 
@@ -111,6 +88,7 @@ export async function getDiagnoses(): Promise<DiagnosisOption[]> {
     .from("diagnoses")
     .select("id, code, name")
     .order("code");
+
   if (error) throw new Error(error.message);
   return data ?? [];
 }
@@ -121,8 +99,24 @@ export async function getTreatments(): Promise<TreatmentOption[]> {
     .from("treatments")
     .select("id, name")
     .order("name");
+    
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+export async function getVisitRows(range: DateRangeYmd): Promise<VisitRow[]> {
+  const supabase = await createClient();
+  return fetchAll<VisitRow>((a, b) =>
+    supabase
+      .from("visits")
+      .select(VISIT_SELECT)
+      .gte("admission_date", range.from)
+      .lte("admission_date", range.to)
+      .order("admission_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range(a, b),
+  );
 }
 
 export async function getInpatientRows(): Promise<VisitRow[]> {
@@ -139,9 +133,6 @@ export async function getInpatientRows(): Promise<VisitRow[]> {
   return (data ?? []) as unknown as VisitRow[];
 }
 
-// ==================================
-// ===== PENJUALAN BEBAS APOTEK =====
-// ==================================
 export async function getOtcSales(range: DateRangeYmd): Promise<OtcSaleRow[]> {
   const supabase = await createClient();
   return fetchAll<OtcSaleRow>((a, b) =>
@@ -158,6 +149,10 @@ export async function getOtcSales(range: DateRangeYmd): Promise<OtcSaleRow[]> {
       .range(a, b),
   );
 }
+
+// ==================================
+// ===== ?????????????????????? =====
+// ==================================
 
 export type DutyEntry = {
   date: string;

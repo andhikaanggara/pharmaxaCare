@@ -1,3 +1,5 @@
+// app/visits/_components/dialog-rx-payment.tsx
+
 "use client";
 
 import { useEffect, useTransition } from "react";
@@ -164,7 +166,7 @@ export default function RxPaymentDialog({
   const showPayment =
     !isRxEdit && !!care && needsPayment(isLongStay, condition);
 
-  const hadPayment = !!(visit && initialPayment(visit));    
+  const hadPayment = !!(visit && initialPayment(visit));
   const hadRx = (visit?.visit_prescription?.length ?? 0) > 0;
   const isEditMode =
     isRxEdit || isPaymentOnly || hadPayment || (!isLongStay && hadRx);

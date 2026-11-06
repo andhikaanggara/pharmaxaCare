@@ -28,13 +28,13 @@ export default async function VisitsPage({
     redirect("/login");
   }
 
-  const [patients, visits, staff, diagnoses, treatments, inpatients, otcSales] =
+  const [patients, staff, diagnoses, treatments, visits, inpatients, otcSales] =
     await Promise.all([
       getPatients(),
-      getVisitRows(range),
       getStaff(),
       getDiagnoses(),
       getTreatments(),
+      getVisitRows(range),
       getInpatientRows(),
       getOtcSales(range),
     ]);
@@ -42,10 +42,10 @@ export default async function VisitsPage({
   return (
     <VisitsClient
       patients={patients}
-      visits={visits}
       staff={staff}
       diagnoses={diagnoses}
       treatments={treatments}
+      visits={visits}
       inpatients={inpatients}
       otcSales={otcSales}
       range={range}

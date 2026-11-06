@@ -34,6 +34,7 @@ import {
 
 type PatientRegistrationDialogProps = {
   open: boolean;
+  edit?: VisitRow | null;
   onOpenChange: (open: boolean) => void;
   visit: VisitRow | null;
   staff: StaffOption[];
@@ -59,11 +60,12 @@ const getFormValues = (
 
 export default function PatientRegistrationDialog({
   open,
+  edit,
   onOpenChange,
   visit,
   staff,
 }: PatientRegistrationDialogProps) {
-  const isEditMode = !!visit?.registration_staff_id;
+  const isEditMode = !!edit?.registration_staff_id;
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<PatientRegistrationType>({

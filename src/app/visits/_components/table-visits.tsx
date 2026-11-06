@@ -51,8 +51,6 @@ export type TreatmentGroupHandler = (
   rows: VisitTreatmentRow[],
 ) => void;
 
-const Empty = () => <span className="text-muted-foreground">-</span>;
-
 export function VisitsTable({
   visits,
   onAction,
@@ -60,7 +58,7 @@ export function VisitsTable({
   onRxAction,
 }: VisitsTableProps) {
   return (
-    <div className="max-h-125 overflow-y-auto relative pb-6">
+    <div className="max-h-125 overflow-y-auto relative">
       <Table>
         <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
           <TableRow>
@@ -71,7 +69,7 @@ export function VisitsTable({
             <TableHead>Tindakan</TableHead>
             <TableHead>Resep</TableHead>
             <TableHead>Pembayaran</TableHead>
-            <TableHead className="text-right">Aksi</TableHead>
+            <TableHead>Aksi</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -97,7 +95,11 @@ export function VisitsTable({
                 </TableCell>
                 <TableCell>{visit.department}</TableCell>
                 <TableCell>{visit.guarantor}</TableCell>
-                <TableCell>{visit.care ?? <Empty />}</TableCell>
+                <TableCell>
+                  {visit.care ?? (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
 
                 {/* Tindakan: klik untuk melihat daftar */}
                 <TableCell>

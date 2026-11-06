@@ -1,3 +1,5 @@
+// app/visits/_components/visit-client.tsx
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -67,10 +69,25 @@ export default function VisitsClient({
   otcSales,
   range,
 }: VisitsClientProps) {
-  const [isFormVisit, setIsFormVisit] = useState(false);
-  const [editVisit, setEditVisit] = useState<VisitRow | null>(null);
+  // State Pencarian
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // State Kunjungan
+  type VisitDialogState =
+    | { type: "closed" }
+    | { type: "create" }
+    | { type: "edit"; visit: VisitRow }
+    | { type: "delete"; visit: VisitRow };
+
+  const [visitDialog, setVisitDialog] = useState<VisitDialogState>({
+    type: "closed",
+  });
+
+  // State Pendaftaran / data pasien
   const [isPatientForm, setIsPatientForm] = useState(false);
   const [patientVisit, setPatientVisit] = useState<VisitRow | null>(null);
+
+  // State Tindakan
   const [isTreatmentForm, setIsTreatmentForm] = useState(false);
   const [treatmentVisit, setTreatmentVisit] = useState<VisitRow | null>(null);
   const [isFollowUpForm, setIsFollowUpForm] = useState(false);
@@ -80,46 +97,48 @@ export default function VisitsClient({
   >(null);
   const [deleteTarget, setDeleteTarget] =
     useState<DeleteTreatmentTarget | null>(null);
-  const [rxEdit, setRxEdit] = useState<{
-    visit: VisitRow;
-    rx: VisitPrescriptionRow;
-  } | null>(null);
+
+  type RxDialogState =
+    | { type: "closed" }
+    | { type: "form"; visit: VisitRow }
+    | { type: "payment_only"; visit: VisitRow }
+    | { type: "edit"; visit: VisitRow; rx: VisitPrescriptionRow }
+    | { type: "delete"; rx: VisitPrescriptionRow };
+
+  const [rxDialog, setRxDialog] = useState<RxDialogState>({ type: "closed" });
   const [settleVisit, setSettleVisit] = useState<VisitRow | null>(null);
 
-  const [deleteVisitTarget, setDeleteVisitTarget] = useState<VisitRow | null>(
-    null,
-  );
+  // State Penjualan Apotek
+  const [isOtcForm, setIsOtcForm] = useState(false);
+  const [editOtc, setEditOtc] = useState<OtcSaleRow | null>(null);
+  const [deleteOtc, setDeleteOtc] = useState<OtcSaleRow | null>(null);
+
+  // State navigasi & filter
   const navigate = useRangeNavigation(range);
   const [filters, setFilters] = useState<VisitFilters>(() => ({
     ...getDefaultFilters(),
     range: { from: parseISO(range.from), to: parseISO(range.to) },
   }));
 
-  const [rxPaymentOnly, setRxPaymentOnly] = useState(false);
-
-  const [rxDelete, setRxDelete] = useState<VisitPrescriptionRow | null>(null);
-  const [isRxForm, setIsRxForm] = useState(false);
-  const [rxVisit, setRxVisit] = useState<VisitRow | null>(null);
-
-  const openCreate = () => {
-    setEditVisit(null);
-    setIsFormVisit(true);
-  };
-
-  const [isOtcForm, setIsOtcForm] = useState(false);
-  const [editOtc, setEditOtc] = useState<OtcSaleRow | null>(null);
-  const [deleteOtc, setDeleteOtc] = useState<OtcSaleRow | null>(null);
-
+  // Buka Form Penjualan
   const openCreateOtc = () => {
-    setEditOtc(null); // tanpa ini, "Tambah" membuka form edit sisa sebelumnya
+    setEditOtc(null);
     setIsOtcForm(true);
   };
 
-  const filteredVisits = useMemo(
-    () => filterVisits(visits, filters),
-    [visits, filters],
-  );
+  // Filter Kunjungan
+  const filteredVisits = useMemo(() => {
+    const result = filterVisits(visits, filters);
+    const query = searchQuery.trim().toLowerCase();
 
+    if (!query) return result;
+
+    return result.filter((visit) =>
+      visit.patients?.name?.toLowerCase().includes(query),
+    );
+  }, [visits, filters, searchQuery]);
+
+  // Filter OTC
   const filteredOtcSales = useMemo(
     () => filterOtcSales(otcSales, filters),
     [otcSales, filters],
@@ -128,11 +147,10 @@ export default function VisitsClient({
   const handleAction = (type: VisitActionType, visit: VisitRow) => {
     switch (type) {
       case "edit-visit":
-        setEditVisit(visit);
-        setIsFormVisit(true);
+        setVisitDialog({ type: "edit", visit });
         break;
       case "delete-visit":
-        setDeleteVisitTarget(visit);
+        setVisitDialog({ type: "delete", visit });
         break;
       case "patient-data":
         setPatientVisit(visit);
@@ -148,21 +166,11 @@ export default function VisitsClient({
         setIsFollowUpForm(true);
         break;
       case "prescription":
-        setRxEdit(null);
-        setRxVisit(visit);
-        setIsRxForm(true);
-        setRxPaymentOnly(false);
-        break;
       case "payment":
-        setRxEdit(null);
-        setRxVisit(visit);
-        setIsRxForm(true);
+        setRxDialog({ type: "form", visit });
         break;
       case "edit-payment":
-        setRxVisit(visit);
-        setRxEdit(null);
-        setRxPaymentOnly(true);
-        setIsRxForm(true);
+        setRxDialog({ type: "payment_only", visit });
         break;
       case "settle-payment":
         setSettleVisit(visit);
@@ -170,6 +178,7 @@ export default function VisitsClient({
     }
   };
 
+  // handle edit & delete tindakan
   const handleGroupAction: TreatmentGroupHandler = (action, visit, rows) => {
     if (action === "edit-group") {
       setFollowUpVisit(visit);
@@ -180,14 +189,18 @@ export default function VisitsClient({
     }
   };
 
+  // handle edit & delete Resep
   const handleRxAction: PrescriptionHandler = (action, visit, rx) => {
-    if (action === "edit-rx") setRxEdit({ visit, rx });
-    else setRxDelete(rx); // konfirmasi hapus, seperti delete-group
+    if (action === "edit-rx") {
+      setRxDialog({ type: "edit", visit, rx });
+    } else {
+      setRxDialog({ type: "delete", rx });
+    }
   };
 
   return (
-    <main className="mx-auto flex h-[calc(100vh-64px)] w-full flex-col gap-6 overflow-hidden p-4 md:p-6">
-      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+    <main className="mx-auto flex h-[calc(100vh-80px)] w-full flex-col gap-4 overflow-hidden p-4 md:p-6">
+      <section className="h-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <Clipboard />
           Visit Management
@@ -195,7 +208,7 @@ export default function VisitsClient({
 
         <div className="flex gap-2 w-full md:w-auto">
           <Button
-            onClick={openCreate}
+            onClick={() => setVisitDialog({ type: "create" })}
             variant="default"
             className="flex-1 md:flex-none gap-2"
           >
@@ -213,14 +226,14 @@ export default function VisitsClient({
         </div>
       </section>
 
-      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <section className="h-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div className="relative md:w-70">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search codes or names..."
-            value={[]}
-            onChange={(e) => console.log("Search query:", e.target.value)}
+            placeholder="Search names..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4"
           />
         </div>
@@ -255,7 +268,7 @@ export default function VisitsClient({
           {/* Rawat Inap */}
           <Card className="h-full flex flex-col">
             <CardHeader>
-              <CardTitle>Rawat Inap ({inpatients.length})</CardTitle>
+              <CardTitle>Rawat Inap</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 overflow-auto">
               <InpatientTable
@@ -285,12 +298,18 @@ export default function VisitsClient({
           </Card>
         </div>
       </div>
+
       <PatientVisitDialog
-        open={isFormVisit}
-        onOpenChange={setIsFormVisit}
+        open={visitDialog.type === "create" || visitDialog.type === "edit"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setVisitDialog({ type: "closed" });
+          }
+        }}
         patients={patients}
-        editData={editVisit}
+        editData={visitDialog.type === "edit" ? visitDialog.visit : null}
       />
+
       <PatientRegistrationDialog
         open={isPatientForm}
         onOpenChange={setIsPatientForm}
@@ -320,30 +339,38 @@ export default function VisitsClient({
         }}
       />
       <DeleteVisitDialog
-        visit={deleteVisitTarget}
+        visit={visitDialog.type === "delete" ? visitDialog.visit : null}
         onOpenChange={(open) => {
-          if (!open) setDeleteVisitTarget(null);
+          if (!open) setVisitDialog({ type: "closed" });
         }}
       />
       <RxPaymentDialog
-        open={isRxForm}
-        onOpenChange={setIsRxForm}
-        visit={rxVisit}
+        open={
+          rxDialog.type === "form" ||
+          rxDialog.type === "payment_only" ||
+          rxDialog.type === "edit"
+        }
+        onOpenChange={(open) => {
+          if (!open) {
+            setRxDialog({ type: "closed" });
+          }
+        }}
+        visit={
+          rxDialog.type === "form" ||
+          rxDialog.type === "payment_only" ||
+          rxDialog.type === "edit"
+            ? rxDialog.visit
+            : null
+        }
         staff={staff}
-        paymentOnly={rxPaymentOnly}
-      />
-      <RxPaymentDialog
-        open={!!rxEdit}
-        onOpenChange={(o) => !o && setRxEdit(null)}
-        visit={rxEdit?.visit ?? null}
-        rx={rxEdit?.rx ?? null}
-        staff={staff}
+        paymentOnly={rxDialog.type === "payment_only"}
+        rx={rxDialog.type === "edit" ? rxDialog.rx : null}
       />
 
       <DeleteRxDialog
-        rx={rxDelete}
+        rx={rxDialog.type === "delete" ? rxDialog.rx : null}
         onOpenChange={(open) => {
-          if (!open) setRxDelete(null);
+          if (!open) setRxDialog({ type: "closed" });
         }}
       />
 

@@ -30,7 +30,7 @@ type OtcSalesTableProps = {
 
 export function OtcSalesTable({ sales, onEdit, onDelete }: OtcSalesTableProps) {
   return (
-    <div className="max-h-70 overflow-y-auto relative pb-2">
+    <div className="max-h-65 overflow-y-auto relative pb-2">
       <Table>
         <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
           <TableRow>
