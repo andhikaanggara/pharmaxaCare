@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
 //  Libs & Utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
 
 // Providers & Global Components

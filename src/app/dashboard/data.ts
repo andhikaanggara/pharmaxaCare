@@ -4,7 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { monthRange, payrollPeriod, wibStart } from "@/lib/periods";
 import type { StaffPerf } from "./_components/dashboard-data";
 import { fetchAll } from "@/lib/fetch-all";
-
+import { format, subDays } from "date-fns";
 
 export type MonthlyChartData = {
   month: string;
@@ -17,6 +17,13 @@ export type MonthlyChartData = {
     diagnoses: { code: string; name: string } | null;
   }[];
   treatmentNames: string[];
+};
+
+export type DutyEntry = {
+  date: string;
+  shift: string;
+  role: string;
+  name: string;
 };
 
 /** Data 5 grafik: satu bulan kalender dari hari yang diberikan */
@@ -170,4 +177,31 @@ export async function getStaffPerformance(day: string): Promise<StaffPerf[]> {
     });
 
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function getDutyRoster(days = 14): Promise<DutyEntry[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("attendances")
+    .select("date, shift, staff:staff!staff_id ( name, roles ( name ) )")
+    .gte("date", format(subDays(new Date(), days), "yyyy-MM-dd"));
+  if (error) throw new Error(error.message);
+
+  type Row = {
+    date: string;
+    shift: string;
+    staff: { name: string; roles: { name: string } | null } | null;
+  };
+  return ((data ?? []) as unknown as Row[]).flatMap((r) =>
+    r.staff?.roles
+      ? [
+          {
+            date: r.date,
+            shift: r.shift,
+            role: r.staff.roles.name.toLowerCase(),
+            name: r.staff.name,
+          },
+        ]
+      : [],
+  );
 }

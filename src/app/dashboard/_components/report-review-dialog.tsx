@@ -27,6 +27,7 @@ export function ReportReviewDialog({
   warnings: string[];
 }) {
   const [draft, setDraft] = useState(text);
+  
   useEffect(() => {
     if (open) setDraft(text);
   }, [open, text]);

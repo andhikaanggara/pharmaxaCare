@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { initialPayment, isRoomCare, outstanding, paidTotal, settlements, VisitRow } from "../schema";
+import {
+  initialPayment,
+  isRoomCare,
+  outstanding,
+  paidTotal,
+  settlements,
+  VisitRow,
+} from "../schema";
 import {
   Popover,
   PopoverContent,
@@ -9,7 +16,7 @@ import { format, parseISO } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { rupiah } from "../utils";
+import { formatRupiah } from "@/utils/utils";
 
 export function PaymentPopoverCard({
   visit,
@@ -48,9 +55,9 @@ export function PaymentPopoverCard({
   const remaining = outstanding(visit);
   const extra = settlements(visit);
   const rows: [string, string][] = [
-    ["Nominal", rupiah.format(pay.billed_amount)],
-    ["Terbayar", rupiah.format(paidTotal(visit))],
-    ["Sisa", rupiah.format(remaining)],
+    ["Nominal", formatRupiah(pay.billed_amount)],
+    ["Terbayar", formatRupiah(paidTotal(visit))],
+    ["Sisa", formatRupiah(remaining)],
     ["Cara bayar", pay.payment_method],
     ["Tanggal", fmtDate(pay.payment_date, pay.payment_shift)],
     ["Kasir", pay.cashier?.name ?? "-"],
@@ -70,7 +77,7 @@ export function PaymentPopoverCard({
           type="button"
           className="inline-flex items-center gap-2 text-sm underline-offset-4 hover:underline"
         >
-          {rupiah.format(paidTotal(visit))}
+          {formatRupiah(paidTotal(visit))}
           {remaining > 0 && <Badge variant="outline">Kurang</Badge>}
         </button>
       </PopoverTrigger>
@@ -96,7 +103,7 @@ export function PaymentPopoverCard({
                   {fmtDate(s.payment_date, s.payment_shift)} ·{" "}
                   {s.payment_method}
                 </span>
-                <span>{rupiah.format(s.amount)}</span>
+                <span>{formatRupiah(s.amount)}</span>
               </p>
             ))}
           </div>

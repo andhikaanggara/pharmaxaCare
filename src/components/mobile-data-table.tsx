@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 type MobileDataTableProps = {
   title: string;

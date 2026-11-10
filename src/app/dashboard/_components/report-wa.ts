@@ -10,9 +10,9 @@ import {
   inDateRange,
   type VisitFilters,
 } from "@/app/visits/_components/filters-visit";
-import type { DutyEntry } from "@/app/visits/data";
 import { outstanding } from "@/app/visits/schema";
 import type { CashSummary } from "@/app/dashboard/cash-data";
+import { DutyEntry } from "../data";
 
 const CLINIC_NAME = "Klinik Pratama Rahayu Medika";
 

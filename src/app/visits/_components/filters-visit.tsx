@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { CARE_OPTIONS, OtcSaleRow, VisitRow } from "../schema";
 import { currentShift, ShiftName } from "@/lib/shift";
+import { getCurrentShift } from "@/utils/utils";
 
 export type ShiftFilter = "all" | ShiftName;
 
@@ -35,17 +36,7 @@ export type VisitFilters = {
   care: string[];
 };
 
-export const getDefaultFilters = (shift: ShiftFilter = "all"): VisitFilters => {
-  const today = currentShift().date;
-  return {
-    range: { from: today, to: today },
-    shift,
-    department: [],
-    guarantor: [],
-    care: [],
-  };
-};
-
+// Level 1: Data Dasar (Variabel & Array)
 const SHIFT_OPTIONS = [
   { value: "Pagi", label: "Pagi" },
   { value: "Sore", label: "Sore" },
@@ -55,27 +46,54 @@ const SHIFT_OPTIONS = [
 const DEPARTMENTS = ["Umum", "Gigi"];
 const GUARANTORS = ["Mandiri", "BPJS"];
 
+// Level 2: Logika Bantuan (Fungsi Pendek)
+const ymd = (date: Date) => format(date, "yyyy-MM-dd");
+const fmt = (date: Date) => format(date, "d MMM yyyy", { locale: idLocale });
 const toggle = (list: string[], v: string) =>
   list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
 
-const fmt = (d: Date) => format(d, "d MMM yyyy", { locale: idLocale });
+// Level 3: Logika Utama (Penyaringan Data)
+export const getDefaultFilters = (shift: ShiftFilter = "all"): VisitFilters => {
+  const today = currentShift().date;
+  return {
+    range: { from: today, to: today },
+    shift: getCurrentShift(),
+    department: [],
+    guarantor: [],
+    care: [],
+  };
+};
 
-// ================
-// === function ===
-// ================
+export const inDateRange = (date: string, filter: VisitFilters) => {
+  if (!filter.range?.from) return true;
+  const d = date.slice(0, 10);
+  return (
+    d >= ymd(filter.range.from) &&
+    d <= ymd(filter.range.to ?? filter.range.from)
+  );
+};
 
-export const filterVisits = (visits: VisitRow[], f: VisitFilters) =>
+export const filterVisits = (visits: VisitRow[], filter: VisitFilters) =>
   visits.filter(
-    (v) =>
-      inDateRange(v.admission_date, f) &&
-      (f.shift === "all" || v.admission_shift === f.shift) &&
-      (!f.department.length || f.department.includes(v.department)) &&
-      (!f.guarantor.length || f.guarantor.includes(v.guarantor)) &&
-      (!f.care.length || (!!v.care && f.care.includes(v.care))),
+    (visits) =>
+      inDateRange(visits.admission_date, filter) &&
+      (filter.shift === "all" || visits.admission_shift === filter.shift) &&
+      (!filter.department.length ||
+        filter.department.includes(visits.department)) &&
+      (!filter.guarantor.length ||
+        filter.guarantor.includes(visits.guarantor)) &&
+      (!filter.care.length ||
+        (!!visits.care && filter.care.includes(visits.care))),
   );
 
-const ymd = (d: Date) => format(d, "yyyy-MM-dd");
+export const filterOtcSales = (sales: OtcSaleRow[], f: VisitFilters) =>
+  sales.filter(
+    (s) =>
+      inDateRange(s.sale_date, f) &&
+      (f.shift === "all" || s.sale_shift === f.shift),
+  );
 
+//  Fitur Lanjutan (Navigasi URL & Komponen UI)
 export function useRangeNavigation(current: { from: string; to: string }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -92,28 +110,6 @@ export function useRangeNavigation(current: { from: string; to: string }) {
     router.replace(`${pathname}?${q}`, { scroll: false });
   };
 }
-
-export const inDateRange = (date: string, f: VisitFilters) => {
-  if (!f.range?.from) return true;
-  const d = date.slice(0, 10); // "2026-11-01"
-  return d >= ymd(f.range.from) && d <= ymd(f.range.to ?? f.range.from);
-};
-
-// export const inDateRange = (date: string, f: VisitFilters) => {
-//   if (!f.range?.from) return true;
-//   const d = date.slice(0, 10);
-//   return (
-//     d >= format(f.range.from, "yyyy-MM-dd") &&
-//     d <= format(f.range.to ?? f.range.from, "yyyy-MM-dd")
-//   );
-// };
-
-export const filterOtcSales = (sales: OtcSaleRow[], f: VisitFilters) =>
-  sales.filter(
-    (s) =>
-      inDateRange(s.sale_date, f) &&
-      (f.shift === "all" || s.sale_shift === f.shift),
-  );
 
 function CheckGroup({
   title,

@@ -57,9 +57,9 @@ import {
   type CashFormType,
   type StaffOption,
 } from "@/app/visits/schema";
-import { rupiah } from "@/app/visits/utils";
 import { currentShift } from "@/lib/shift";
 import { createCashEntry, deleteCashEntry, updateCashEntry } from "../action";
+import { formatRupiah } from "@/utils/utils";
 
 const getValues = (
   e?: CashEntryRow | null,
@@ -343,7 +343,7 @@ export function CashLedgerDialog({
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
-                  <span className="font-medium">{rupiah.format(e.amount)}</span>
+                  <span className="font-medium">{formatRupiah(e.amount)}</span>
                   <Button
                     type="button"
                     variant="ghost"
@@ -380,7 +380,7 @@ export function CashLedgerDialog({
             <AlertDialogTitle>Hapus catatan kas?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting
-                ? `${deleting.kind} ${rupiah.format(deleting.amount)}${deleting.note ? ` (${deleting.note})` : ""}. `
+                ? `${deleting.kind} ${formatRupiah(deleting.amount)}${deleting.note ? ` (${deleting.note})` : ""}. `
                 : ""}
               Saldo semua shift sesudahnya ikut berubah.
             </AlertDialogDescription>

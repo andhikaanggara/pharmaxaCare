@@ -6,18 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 
-export function getCurrentShift(): "Pagi" | "Sore" | "Malam" {
+export const getCurrentShift = (): "Pagi" | "Sore" | "Malam" => {
   const hour = new Date().getHours();
-
-  if (hour >= 7 && hour < 14) {
-    return "Pagi";
-  } else if (hour >= 14 && hour < 21) {
-    return "Sore";
-  } else {
-    return "Malam";
-  }
-}
-
+  if (hour >= 7 && hour <= 14) return "Pagi";
+  if (hour >= 14 && hour <= 21) return "Sore";
+  return "Malam";
+};
 
 export function formatRupiah(value: number | string): string {
   const amount = typeof value === "string" ? parseFloat(value) : value;

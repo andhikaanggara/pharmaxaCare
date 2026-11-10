@@ -7,7 +7,6 @@ import {
   type VisitRow,
 } from "@/app/visits/schema";
 import { type VisitFilters } from "@/app/visits/_components/filters-visit";
-import { rupiah } from "@/app/visits/utils";
 import {
   renderFarmasi,
   renderKeuangan,
@@ -15,9 +14,8 @@ import {
   renderPendaftaran,
   renderPerawat,
 } from "./report-wa";
-import { DutyEntry } from "@/app/visits/data";
 import { elapsedDays, monthLabel, todayYmd, wibDay } from "@/lib/periods";
-import { MonthlyChartData } from "../data";
+import { DutyEntry, MonthlyChartData } from "../data";
 import { outstanding as owedOf } from "@/app/visits/schema";
 import { CashSummary } from "../cash-data";
 

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "./ui/button";
 import { PencilIcon, Trash2Icon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];

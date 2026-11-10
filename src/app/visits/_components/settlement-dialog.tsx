@@ -33,8 +33,8 @@ import {
   type StaffOption,
   type VisitRow,
 } from "../schema";
-import { rupiah } from "../utils";
 import { currentShift } from "@/lib/shift";
+import { formatRupiah } from "@/utils/utils";
 
 const getValues = (
   visit: VisitRow | null,
@@ -102,7 +102,7 @@ export default function SettlementDialog({
         <FieldGroup>
           <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
             {visit?.patients?.name ?? "-"} | Sisa tagihan{" "}
-            {visit ? rupiah.format(outstanding(visit)) : "-"}
+            {visit ? formatRupiah(outstanding(visit)) : "-"}
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

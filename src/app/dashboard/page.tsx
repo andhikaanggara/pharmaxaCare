@@ -1,5 +1,4 @@
 import {
-  getDutyRoster,
   getInpatientRows,
   getOtcSales,
   getStaff,
@@ -7,7 +6,7 @@ import {
 } from "@/app/visits/data";
 import DashboardSummary from "./_components/dashboard-summary";
 import { payrollPeriod, rangeFromParams, todayYmd } from "@/lib/periods";
-import { getMonthlyChartData, getStaffPerformance } from "./data";
+import { getDutyRoster, getMonthlyChartData, getStaffPerformance } from "./data";
 import { getCashEntries } from "./cash-data";
 
 export default async function DashboardPage({

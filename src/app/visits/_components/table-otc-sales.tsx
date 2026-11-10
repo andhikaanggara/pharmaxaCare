@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { OtcSaleRow } from "../schema";
-import { rupiah } from "../utils";
+import { formatRupiah } from "@/utils/utils";
 
 type OtcSalesTableProps = {
   sales: OtcSaleRow[];
@@ -71,7 +71,7 @@ export function OtcSalesTable({ sales, onEdit, onDelete }: OtcSalesTableProps) {
                 </TableCell>
 
                 <TableCell className="text-right">
-                  {rupiah.format(sale.amount)}
+                  {formatRupiah(sale.amount)}
                 </TableCell>
 
                 <TableCell className="text-right">

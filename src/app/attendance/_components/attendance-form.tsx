@@ -6,7 +6,6 @@ import { format } from "date-fns";
 import { createAttendance, updateAttendance } from "../actions";
 import { DialogForm } from "@/components/dialog-form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -28,8 +27,8 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
-import { Plus, X } from "lucide-react";
-import { StaffForm } from "@/app/master-staff/_components/staff-form";
+import { X } from "lucide-react";
+import { getCurrentShift } from "@/utils/utils";
 
 type AttendanceFormProps = {
   open: boolean;
@@ -39,18 +38,11 @@ type AttendanceFormProps = {
   staffList: StaffSchema[];
 };
 
-function getShiftDefault() {
-  const h = new Date().getHours();
-  if (h >= 7 && h < 14) return "Pagi";
-  if (h >= 14 && h < 21) return "Sore";
-  return "Malam";
-}
-
 const SHIFTS = ["Pagi", "Sore", "Malam"];
 
 const defaultValues: AttendanceSchema = {
   date: format(new Date(), "yyyy-MM-dd"),
-  shift: getShiftDefault() as "Pagi" | "Sore" | "Malam",
+  shift: getCurrentShift() as "Pagi" | "Sore" | "Malam",
   staff_id: [],
 };
 

@@ -58,10 +58,8 @@ import {
   StaffPerf,
 } from "./dashboard-data";
 import { OtcSaleRow, ROOMS, VisitRow } from "@/app/visits/schema";
-import { rupiah } from "@/app/visits/utils";
 import { DashboardCharts } from "./dashboard-charts";
 import { ReportReviewDialog } from "./report-review-dialog";
-import { DutyEntry } from "@/app/visits/data";
 import { useEffect, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -72,7 +70,7 @@ import {
   todayYmd,
 } from "@/lib/periods";
 import { buildMonthlyCharts } from "./dashboard-data";
-import type { MonthlyChartData } from "../data";
+import type { DutyEntry, MonthlyChartData } from "../data";
 import { format, parseISO } from "date-fns";
 import { CashLedgerDialog } from "./cash-ledger-dialog";
 import { toast } from "sonner";
@@ -84,6 +82,7 @@ import type {
   StaffOption,
 } from "@/app/visits/schema";
 import { currentShift } from "@/lib/shift";
+import { formatRupiah } from "@/utils/utils";
 
 // state dan komponen filter yang sudah ada
 
@@ -122,9 +121,10 @@ export default function DashboardSummary({
   const [pending, startTransition] = useTransition();
   const [role, setRole] = useState("all");
   const [cashOpen, setCashOpen] = useState(false);
+
   const navigate = useRangeNavigation(range);
   const [filters, setFilters] = useState<VisitFilters>(() => ({
-    ...getDefaultFilters(currentShift().shift), // dashboard tetap default shift saat ini
+    ...getDefaultFilters(currentShift().shift),
     range: { from: parseISO(range.from), to: parseISO(range.to) },
   }));
 
@@ -227,19 +227,19 @@ export default function DashboardSummary({
     },
     {
       label: "Pendapatan Terbayar",
-      value: rupiah.format(k.paid),
+      value: formatRupiah(k.paid),
       note: `${k.payCount} pembayaran · tanpa BPJS`,
       icon: Wallet,
     },
     {
       label: "Sisa Tagihan",
-      value: rupiah.format(k.outstanding),
+      value: formatRupiah(k.outstanding),
       note: `${k.unpaid} kunjungan`,
       icon: Receipt,
     },
     {
       label: "Penjualan Apotek",
-      value: rupiah.format(k.otc),
+      value: formatRupiah(k.otc),
       note: `${k.otcCount} transaksi`,
       icon: ShoppingBag,
     },
@@ -397,7 +397,7 @@ export default function DashboardSummary({
                   </TableCell>
                   <TableCell>{p.rx}</TableCell>
                   <TableCell>
-                    {p.trx} · {rupiah.format(p.total)}
+                    {p.trx} · {formatRupiah(p.total)}
                   </TableCell>
                 </TableRow>
               ))}

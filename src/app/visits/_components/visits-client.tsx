@@ -47,6 +47,20 @@ import {
 } from "./filters-visit";
 import SettlementDialog from "./settlement-dialog";
 import { parseISO } from "date-fns";
+import { DialogWaPaient } from "./dialog-wa-patient";
+
+type VisitDialogState =
+  | { type: "closed" }
+  | { type: "create" }
+  | { type: "edit"; visit: VisitRow }
+  | { type: "delete"; visit: VisitRow };
+
+type RxDialogState =
+  | { type: "closed" }
+  | { type: "form"; visit: VisitRow }
+  | { type: "payment_only"; visit: VisitRow }
+  | { type: "edit"; visit: VisitRow; rx: VisitPrescriptionRow }
+  | { type: "delete"; rx: VisitPrescriptionRow };
 
 type VisitsClientProps = {
   patients: PatientOption[];
@@ -73,11 +87,6 @@ export default function VisitsClient({
   const [searchQuery, setSearchQuery] = useState("");
 
   // State Kunjungan
-  type VisitDialogState =
-    | { type: "closed" }
-    | { type: "create" }
-    | { type: "edit"; visit: VisitRow }
-    | { type: "delete"; visit: VisitRow };
 
   const [visitDialog, setVisitDialog] = useState<VisitDialogState>({
     type: "closed",
@@ -98,13 +107,6 @@ export default function VisitsClient({
   const [deleteTarget, setDeleteTarget] =
     useState<DeleteTreatmentTarget | null>(null);
 
-  type RxDialogState =
-    | { type: "closed" }
-    | { type: "form"; visit: VisitRow }
-    | { type: "payment_only"; visit: VisitRow }
-    | { type: "edit"; visit: VisitRow; rx: VisitPrescriptionRow }
-    | { type: "delete"; rx: VisitPrescriptionRow };
-
   const [rxDialog, setRxDialog] = useState<RxDialogState>({ type: "closed" });
   const [settleVisit, setSettleVisit] = useState<VisitRow | null>(null);
 
@@ -119,6 +121,8 @@ export default function VisitsClient({
     ...getDefaultFilters(),
     range: { from: parseISO(range.from), to: parseISO(range.to) },
   }));
+
+  const [isDialogWaPaient, setIsDialogWaPaient] = useState(false);
 
   // Buka Form Penjualan
   const openCreateOtc = () => {
@@ -137,6 +141,10 @@ export default function VisitsClient({
       visit.patients?.name?.toLowerCase().includes(query),
     );
   }, [visits, filters, searchQuery]);
+
+  const phoneNumber: string[] = filteredVisits
+    .map((visit) => visit.patients?.phone)
+    .filter((phone): phone is string => !!phone);
 
   // Filter OTC
   const filteredOtcSales = useMemo(
@@ -245,6 +253,13 @@ export default function VisitsClient({
               navigate(f.range);
             }}
           />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsDialogWaPaient(true)}
+          >
+            Salin Wa Pasien
+          </Button>
         </div>
       </section>
 
@@ -393,6 +408,12 @@ export default function VisitsClient({
           if (!o) setSettleVisit(null);
         }}
         staff={staff}
+      />
+
+      <DialogWaPaient
+        open={isDialogWaPaient}
+        onOpenChange={setIsDialogWaPaient}
+        text={phoneNumber}
       />
     </main>
   );

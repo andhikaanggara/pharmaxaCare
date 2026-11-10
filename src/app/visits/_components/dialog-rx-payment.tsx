@@ -50,8 +50,8 @@ import {
   type VisitRow,
 } from "../schema";
 import { CurrencyInput } from "@/components/input-currency";
-import { rupiah } from "../utils";
 import { currentShift } from "@/lib/shift";
+import { formatRupiah } from "@/utils/utils";
 
 type RxPaymentDialogProps = {
   open: boolean;
@@ -579,7 +579,7 @@ export default function RxPaymentDialog({
                   <p className="text-sm text-muted-foreground">
                     Sisa tagihan:{" "}
                     <span className="font-medium text-foreground">
-                      {rupiah.format(Math.max(billed - (paid ?? 0), 0))}
+                      {formatRupiah(Math.max(billed - (paid ?? 0), 0))}
                     </span>
                   </p>
                 )}

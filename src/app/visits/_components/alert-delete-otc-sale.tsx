@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteOtcSale } from "../action";
 import type { OtcSaleRow } from "../schema";
-import { rupiah } from "../utils";
+import { formatRupiah } from "@/utils/utils";
 
 type DeleteOtcSaleDialogProps = {
   sale: OtcSaleRow | null;
@@ -61,7 +61,7 @@ export default function DeleteOtcSaleDialog({
             {sale
               ? `${format(parseISO(sale.sale_date), "d MMM yyyy", {
                   locale: idLocale,
-                })} | ${sale.sale_shift} | ${rupiah.format(sale.amount)}. `
+                })} | ${sale.sale_shift} | ${formatRupiah(sale.amount)}. `
               : ""}
             Data penjualan yang dihapus tidak bisa dikembalikan.
           </AlertDialogDescription>
