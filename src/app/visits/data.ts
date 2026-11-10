@@ -17,6 +17,7 @@ import type {
 } from "./schema";
 
 const VISIT_SELECT = `
+      id,
       department, 
       guarantor, 
       care, 
@@ -35,9 +36,10 @@ const VISIT_SELECT = `
       nurse:staff!nurse_staff_id ( id, name ),
       diagnoses!diagnoses_id ( id, code, name ),
 
-      patients ( name, gender, birth_date, phone, address, patient_group, is_new ),
+      patients ( id, name, gender, birth_date, phone, address, patient_group, is_new ),
             
       visit_treatments (
+        id, 
         treatment_id, 
         treatment_date, 
         treatment_shift,
@@ -49,6 +51,7 @@ const VISIT_SELECT = `
       ),
 
       visit_prescription:visit_prescriptions (
+        id,
         prescription_type,
         pharmacist_staff_id,
         prescription_date,
@@ -57,6 +60,7 @@ const VISIT_SELECT = `
       ),
       
       visit_payment:visit_payments (
+        id,
         billed_amount,
         amount,
         payment_method,
@@ -80,6 +84,7 @@ export async function getVisitRows(range: DateRangeYmd): Promise<VisitRow[]> {
       .lte("admission_date", range.to)
       .order("admission_date", { ascending: false })
       .order("created_at", { ascending: false })
+      .order("id")
       .range(a, b),
   );
 }
