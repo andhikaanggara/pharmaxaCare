@@ -46,14 +46,19 @@ export function DialogWaPaient({
             <Button
               type="button"
               variant="outline"
-              size="icon"
               onClick={handleCopy}
               disabled={copied}
             >
               {copied ? (
-                <Check className="h-4 w-4" />
+                <span className="flex items-center gap-1.5">
+                  <Check className="h-4 w-4" />
+                  <span>Tersalin</span>
+                </span>
               ) : (
-                <Clipboard className="h-4 w-4" />
+                <span className="flex items-center gap-2">
+                  <Clipboard className="h-4 w-4" />
+                  <span>Salin</span>
+                </span>
               )}
             </Button>
           </div>
